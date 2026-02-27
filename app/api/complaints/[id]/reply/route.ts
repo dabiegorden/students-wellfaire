@@ -4,10 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
+
+    const { id } = await context.params; // ✅ NEW (important)
 
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -24,17 +26,21 @@ export async function PATCH(
     }
 
     const updateData: any = {};
+
     if (adminReply) {
       updateData.adminReply = adminReply;
       updateData.repliedAt = new Date();
     }
+
     if (status) {
       updateData.status = status;
     }
 
-    const complaint = await Complaint.findByIdAndUpdate(params.id, updateData, {
-      new: true,
-    }).populate("studentId", "firstName lastName email");
+    const complaint = await Complaint.findByIdAndUpdate(
+      id, // ✅ use id from awaited params
+      updateData,
+      { new: true },
+    ).populate("studentId", "firstName lastName email");
 
     if (!complaint) {
       return NextResponse.json(
