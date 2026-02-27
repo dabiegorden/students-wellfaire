@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Download,
-  FileText,
-  AlertCircle,
-  Loader,
-  Calendar,
-} from "lucide-react";
+import { Download, FileText, AlertCircle, Loader } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/context/user-context";
 
 interface Complaint {
   _id: string;
@@ -28,26 +21,72 @@ interface Complaint {
   repliedAt?: string;
 }
 
+interface User {
+  _id: string;
+  email: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 export default function ReportsPage() {
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reportType, setReportType] = useState("all");
   const [dateRange, setDateRange] = useState("30");
 
+  // Check authentication and fetch user data
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    } else if (!isLoading && user && user.role !== "admin") {
-      router.push("/student-dashboard");
-    }
-  }, [user, isLoading, router]);
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.user.role !== "admin") {
+          router.push("/");
+          return;
+        }
+
+        setUser(data.user);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        localStorage.removeItem("token");
+        router.push("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
-    fetchComplaints();
-  }, [reportType, dateRange]);
+    if (user && user.role === "admin") {
+      fetchComplaints();
+    }
+  }, [reportType, dateRange, user]);
 
   const fetchComplaints = async () => {
     try {
@@ -75,7 +114,20 @@ export default function ReportsPage() {
       }
 
       const data = await response.json();
-      setComplaints(data.complaints);
+
+      // Filter by date range
+      const daysAgo = parseInt(dateRange);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+
+      const filteredComplaints = data.complaints.filter(
+        (complaint: Complaint) => {
+          const complaintDate = new Date(complaint.createdAt);
+          return complaintDate >= cutoffDate;
+        },
+      );
+
+      setComplaints(filteredComplaints);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

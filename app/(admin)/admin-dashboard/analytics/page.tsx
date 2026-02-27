@@ -9,21 +9,13 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
 } from "recharts";
-import { AlertCircle, Loader, TrendingUp } from "lucide-react";
+import { AlertCircle, Loader } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUser } from "@/context/user-context";
 
 interface AnalyticsData {
   summary: {
@@ -48,6 +39,14 @@ interface AnalyticsData {
   facultyData: Array<{ name: string; value: number }>;
 }
 
+interface User {
+  _id: string;
+  email: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 const COLORS = [
   "#10b981",
   "#f59e0b",
@@ -59,7 +58,8 @@ const COLORS = [
 
 export default function AnalyticsPage() {
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(
     null,
   );
@@ -67,17 +67,54 @@ export default function AnalyticsPage() {
   const [error, setError] = useState("");
   const [days, setDays] = useState("30");
 
+  // Check authentication and fetch user data
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    } else if (!isLoading && user && user.role !== "admin") {
-      router.push("/student-dashboard");
-    }
-  }, [user, isLoading, router]);
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.user.role !== "admin") {
+          router.push("/");
+          return;
+        }
+
+        setUser(data.user);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        localStorage.removeItem("token");
+        router.push("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [days]);
+    if (user && user.role === "admin") {
+      fetchAnalytics();
+    }
+  }, [days, user]);
 
   const fetchAnalytics = async () => {
     try {
