@@ -212,7 +212,7 @@ export default function AdminDashboard() {
             className="mb-8"
           >
             <h1 className="text-4xl font-bold text-white mb-2">
-              Welcome back, {user.firstName}!
+              Welcome back, {user?.firstName}!
             </h1>
             <p className="text-zinc-400">
               Here's what's happening with your system today
@@ -439,23 +439,23 @@ export default function AdminDashboard() {
                           className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4 hover:bg-zinc-800 transition-colors cursor-pointer"
                           onClick={() =>
                             router.push(
-                              `/admin-dashboard/complaints/${complaint._id}`,
+                              `/admin-dashboard/complaints/${complaint?._id}`,
                             )
                           }
                         >
                           <div className="flex items-start justify-between mb-2">
                             <h4 className="text-white font-medium text-sm line-clamp-1">
-                              {complaint.title}
+                              {complaint?.title}
                             </h4>
-                            <StatusBadge status={complaint.status} />
+                            <StatusBadge status={complaint?.status} />
                           </div>
                           <div className="flex items-center justify-between">
                             <p className="text-zinc-400 text-xs">
-                              {complaint.studentId.firstName}{" "}
-                              {complaint.studentId.lastName} •{" "}
-                              {complaint.studentId.studentId}
+                              {complaint?.studentId?.firstName}{" "}
+                              {complaint?.studentId?.lastName} •{" "}
+                              {complaint?.studentId?.studentId}
                             </p>
-                            <PriorityBadge priority={complaint.priority} />
+                            <PriorityBadge priority={complaint?.priority} />
                           </div>
                         </div>
                       ))

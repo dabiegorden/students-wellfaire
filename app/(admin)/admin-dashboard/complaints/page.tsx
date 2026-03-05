@@ -404,30 +404,30 @@ export default function ComplaintsPage() {
                   <tbody className="divide-y divide-zinc-800">
                     {complaints.map((complaint) => (
                       <tr
-                        key={complaint._id}
+                        key={complaint?._id}
                         className="hover:bg-zinc-800/50 transition-colors"
                       >
                         <td className="px-6 py-4">
                           <p className="text-white font-medium">
-                            {complaint.title}
+                            {complaint?.title}
                           </p>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-zinc-400 text-sm">
-                            {complaint.studentId.firstName}{" "}
-                            {complaint.studentId.lastName}
+                            {complaint?.studentId?.firstName}{" "}
+                            {complaint?.studentId?.lastName}
                           </p>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-zinc-300 text-sm">
-                            {complaint.category}
+                            {complaint?.category}
                           </p>
                         </td>
                         <td className="px-6 py-4">
                           <span
                             className={`inline-block px-3 py-1 text-xs font-medium rounded-full border ${getPriorityColor(complaint.priority)}`}
                           >
-                            {complaint.priority}
+                            {complaint?.priority}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -524,21 +524,21 @@ export default function ComplaintsPage() {
               <div>
                 <p className="text-zinc-400 text-sm mb-1">Student</p>
                 <p className="text-white">
-                  {selectedComplaint.studentId.firstName}{" "}
-                  {selectedComplaint.studentId.lastName}
+                  {selectedComplaint?.studentId?.firstName}{" "}
+                  {selectedComplaint?.studentId?.lastName}
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-zinc-400 text-sm mb-1">Category</p>
-                  <p className="text-white">{selectedComplaint.category}</p>
+                  <p className="text-white">{selectedComplaint?.category}</p>
                 </div>
                 <div>
                   <p className="text-zinc-400 text-sm mb-1">Priority</p>
                   <span
                     className={`inline-block px-3 py-1 text-xs font-medium rounded-full border ${getPriorityColor(selectedComplaint.priority)}`}
                   >
-                    {selectedComplaint.priority}
+                    {selectedComplaint?.priority}
                   </span>
                 </div>
                 <div>
