@@ -438,9 +438,7 @@ export default function AdminDashboard() {
                           key={complaint._id}
                           className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4 hover:bg-zinc-800 transition-colors cursor-pointer"
                           onClick={() =>
-                            router.push(
-                              `/admin-dashboard/complaints/${complaint?._id}`,
-                            )
+                            router.push(`/admin-dashboard/complaints`)
                           }
                         >
                           <div className="flex items-start justify-between mb-2">

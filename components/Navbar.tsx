@@ -138,10 +138,9 @@ export default function Navbar() {
   const getDashboardLink = () => {
     if (user?.role === "admin") {
       return "/admin-dashboard";
-    } else if (user?.role === "students") {
-      return "/students-dashboard";
+    } else {
+      return "/";
     }
-    return "/";
   };
 
   const getDisplayName = () => {
@@ -365,7 +364,7 @@ export default function Navbar() {
                           className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-emerald-400 transition-colors"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          Dashboard
+                          {user?.role === "admin" ? "Dashboard" : ""}
                         </Link>
                         <button
                           onClick={handleLogout}

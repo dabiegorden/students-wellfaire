@@ -320,16 +320,6 @@ function DashboardContent({ children }: { children: ReactNode }) {
                       <DropdownMenuSeparator className="bg-zinc-800" />
                     </div>
 
-                    <DropdownMenuItem className="cursor-pointer text-zinc-300 hover:text-white hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile Settings</span>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem className="cursor-pointer text-zinc-300 hover:text-white hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem>
-
                     <DropdownMenuSeparator className="bg-zinc-800" />
 
                     <DropdownMenuItem

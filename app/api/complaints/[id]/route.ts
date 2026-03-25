@@ -4,6 +4,55 @@ import { connectDB } from "@/lib/db";
 import Complaint from "@/models/Complaint";
 import User from "@/models/User";
 import { Types } from "mongoose";
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+async function analyseComplaintWithAI(
+  title: string,
+  category: string,
+  description: string,
+): Promise<{
+  aiPriority: "Low" | "Medium" | "High" | "Critical";
+  aiExplanation: string;
+  aiScore: number;
+}> {
+  const prompt = `
+You are an expert student affairs officer at a university. Analyse the following student complaint and determine its priority level.
+
+Complaint Title: "${title}"
+Category: "${category}"
+Description: "${description}"
+
+Evaluate urgency based on:
+- Potential impact on student wellbeing, academic performance, or safety
+- Time-sensitivity of the issue
+- Severity and seriousness of the concern
+- Whether it affects one student or multiple
+
+Respond with ONLY a valid JSON object in this exact format (no markdown, no explanation outside JSON):
+{
+  "priority": "Low" | "Medium" | "High" | "Critical",
+  "score": <integer 0-100 representing urgency, 100 being most urgent>,
+  "explanation": "<2-3 sentences explaining why this priority was assigned and what factors were most important>"
+}
+`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
+  });
+
+  const raw = response.text?.trim() ?? "";
+  const clean = raw.replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(clean);
+
+  return {
+    aiPriority: parsed.priority,
+    aiExplanation: parsed.explanation,
+    aiScore: parsed.score,
+  };
+}
 
 export async function GET(
   request: NextRequest,
@@ -32,16 +81,14 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const complaintId = id;
-
-    if (!Types.ObjectId.isValid(complaintId)) {
+    if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid complaint ID" },
         { status: 400 },
       );
     }
 
-    const complaint = await Complaint.findById(complaintId)
+    const complaint = await Complaint.findById(id)
       .populate("studentId", "firstName lastName email studentId")
       .lean();
 
@@ -52,10 +99,9 @@ export async function GET(
       );
     }
 
-    // Student can only view their own complaints, admin can view all
     if (
       user.role === "students" &&
-      complaint.studentId._id.toString() !== userId
+      (complaint.studentId as any)._id.toString() !== userId
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -97,9 +143,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const complaintId = id;
-
-    if (!Types.ObjectId.isValid(complaintId)) {
+    if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid complaint ID" },
         { status: 400 },
@@ -107,10 +151,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { adminReply, status, priority } = body;
-
-    // Check if user has permission to update
-    const complaint = await Complaint.findById(complaintId);
+    const complaint = await Complaint.findById(id);
 
     if (!complaint) {
       return NextResponse.json(
@@ -119,30 +160,51 @@ export async function PATCH(
       );
     }
 
-    // Only admin can reply or change status/priority
     if (user.role === "admin") {
-      if (!adminReply && !status && !priority) {
+      const { adminReply, status, priority, reanalyse } = body;
+
+      if (!adminReply && !status && !priority && !reanalyse) {
         return NextResponse.json(
-          { error: "Reply, status, or priority is required" },
+          { error: "Reply, status, priority, or reanalyse flag is required" },
           { status: 400 },
         );
       }
 
       const updateData: any = {};
+
       if (adminReply) {
         updateData.adminReply = adminReply;
         updateData.repliedAt = new Date();
         updateData.adminId = userId;
       }
-      if (status) {
-        updateData.status = status;
-      }
-      if (priority) {
-        updateData.priority = priority;
+      if (status) updateData.status = status;
+      if (priority) updateData.priority = priority;
+
+      // Admin can trigger AI re-analysis
+      if (reanalyse) {
+        try {
+          const aiData = await analyseComplaintWithAI(
+            complaint.title,
+            complaint.category,
+            complaint.description,
+          );
+          updateData.aiPriority = aiData.aiPriority;
+          updateData.aiExplanation = aiData.aiExplanation;
+          updateData.aiScore = aiData.aiScore;
+          updateData.aiAnalysedAt = new Date();
+          // Also update the actual priority to match AI
+          updateData.priority = aiData.aiPriority;
+        } catch (aiError) {
+          console.error("AI re-analysis failed:", aiError);
+          return NextResponse.json(
+            { error: "AI re-analysis failed" },
+            { status: 500 },
+          );
+        }
       }
 
       const updatedComplaint = await Complaint.findByIdAndUpdate(
-        complaintId,
+        id,
         updateData,
         { new: true },
       ).populate("studentId", "firstName lastName email studentId");
@@ -152,7 +214,6 @@ export async function PATCH(
         message: "Complaint updated successfully",
       });
     } else if (user.role === "students") {
-      // Students cannot update complaints that have been replied to
       if (complaint.adminReply) {
         return NextResponse.json(
           { error: "Cannot update complaint after admin reply" },
@@ -160,13 +221,11 @@ export async function PATCH(
         );
       }
 
-      // Students can only edit their own complaints
       if (complaint.studentId.toString() !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      // Students can only update description, title, or priority before admin reply
-      if (!body.title && !body.description && !body.priority) {
+      if (!body.title && !body.description) {
         return NextResponse.json(
           { error: "Missing fields to update" },
           { status: 400 },
@@ -176,10 +235,25 @@ export async function PATCH(
       const updateData: any = {};
       if (body.title) updateData.title = body.title;
       if (body.description) updateData.description = body.description;
-      if (body.priority) updateData.priority = body.priority;
+
+      // Re-run AI analysis if content changed
+      try {
+        const aiData = await analyseComplaintWithAI(
+          updateData.title ?? complaint.title,
+          complaint.category,
+          updateData.description ?? complaint.description,
+        );
+        updateData.aiPriority = aiData.aiPriority;
+        updateData.aiExplanation = aiData.aiExplanation;
+        updateData.aiScore = aiData.aiScore;
+        updateData.priority = aiData.aiPriority;
+        updateData.aiAnalysedAt = new Date();
+      } catch (aiError) {
+        console.error("AI re-analysis on edit failed:", aiError);
+      }
 
       const updatedComplaint = await Complaint.findByIdAndUpdate(
-        complaintId,
+        id,
         updateData,
         { new: true },
       );
@@ -227,16 +301,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const complaintId = id;
-
-    if (!Types.ObjectId.isValid(complaintId)) {
+    if (!Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid complaint ID" },
         { status: 400 },
       );
     }
 
-    const complaint = await Complaint.findById(complaintId);
+    const complaint = await Complaint.findById(id);
 
     if (!complaint) {
       return NextResponse.json(
@@ -245,12 +317,10 @@ export async function DELETE(
       );
     }
 
-    // Admin can delete any complaint, students can only delete pending complaints
     if (user.role === "students") {
       if (complaint.studentId.toString() !== userId) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-
       if (complaint.status !== "Pending") {
         return NextResponse.json(
           { error: "Can only delete pending complaints" },
@@ -261,11 +331,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await Complaint.findByIdAndDelete(complaintId);
+    await Complaint.findByIdAndDelete(id);
 
-    return NextResponse.json({
-      message: "Complaint deleted successfully",
-    });
+    return NextResponse.json({ message: "Complaint deleted successfully" });
   } catch (error) {
     console.error("Error deleting complaint:", error);
     return NextResponse.json(

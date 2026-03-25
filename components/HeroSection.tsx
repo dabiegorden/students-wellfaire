@@ -5,11 +5,28 @@ import { ArrowRight, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroBg from "@/public/assets/hero-bg.jpg";
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
+
+interface UserData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: "students" | "admin";
+  studentId?: string;
+  staffId?: string;
+  faculty?: string;
+  level?: string;
+  programme?: string;
+  department?: string;
+}
 
 const HeroSection = () => {
   const ref = useRef(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -17,6 +34,45 @@ const HeroSection = () => {
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
+  // Fetch user profile from /api/me
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("token");
+          setIsLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        setUser(data.user);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  // Only show buttons for students or when not logged in
+  const shouldShowButtons = !user || user.role === "students";
 
   return (
     <section
@@ -61,7 +117,7 @@ const HeroSection = () => {
             repeat: Infinity,
             ease: "linear",
           }}
-          className="absolute -bottom-32 -left-32 w-150 h-150 bg-teal-500/20 rounded-full blur-3xl"
+          className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl"
         />
       </div>
 
@@ -133,40 +189,92 @@ const HeroSection = () => {
             through intelligent, transparent workflows.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 mb-16"
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/complaints">
-                <Button
-                  size="lg"
-                  className="relative overflow-hidden bg-linear-to-r from-emerald-400 to-teal-500 text-zinc-950 font-bold text-base px-10 py-7 rounded-xl hover:shadow-2xl hover:shadow-emerald-500/50 transition-all group cursor-pointer"
-                >
-                  <span className="relative z-10 flex items-center gap-3">
-                    Submit a Complaint
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-linear-to-r from-emerald-300 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Button>
-              </Link>
+          {/* CTA Buttons - Only show for students or when not logged in */}
+          {!isLoading && shouldShowButtons && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-4 mb-16"
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/complaints">
+                  <Button
+                    size="lg"
+                    className="relative overflow-hidden bg-linear-to-r from-emerald-400 to-teal-500 text-zinc-950 font-bold text-base px-10 py-7 rounded-xl hover:shadow-2xl hover:shadow-emerald-500/50 transition-all group cursor-pointer"
+                  >
+                    <span className="relative z-10 flex items-center gap-3">
+                      Submit a Complaint
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-linear-to-r from-emerald-300 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Button>
+                </Link>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/track-response">
+                  <Button
+                    size="lg"
+                    className="relative overflow-hidden bg-linear-to-r from-green-700 to-green-800 text-slate-100 font-bold text-base px-10 py-7 rounded-xl hover:shadow-2xl hover:shadow-emerald-500/50 hover:text-zinc-950 transition-all group cursor-pointer"
+                  >
+                    <span className="relative z-10 flex items-center gap-3">
+                      Track Response
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-linear-to-r from-emerald-300 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Button>
+                </Link>
+              </motion.div>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/track-response">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-2 border-zinc-700 text-slate-900 font-semibold text-base px-10 py-7 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  <TrendingUp className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
-                  Track Response
-                </Button>
-              </Link>
+          )}
+
+          {/* Admin welcome message - Only show for admin */}
+          {!isLoading && user?.role === "admin" && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mb-16"
+            >
+              <div className="relative group">
+                <div className="absolute inset-0 bg-linear-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative bg-zinc-900/50 backdrop-blur-sm border border-zinc-800/50 rounded-2xl p-8 group-hover:border-emerald-500/30 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-600 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-6 h-6 text-zinc-950" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-2">
+                        Welcome, Administrator
+                      </h3>
+                      <p className="text-zinc-400 leading-relaxed">
+                        Access your dashboard to manage complaints, monitor
+                        system performance, and engage with student concerns
+                        effectively.
+                      </p>
+                      <Link href="/admin-dashboard">
+                        <Button
+                          size="lg"
+                          className="mt-4 relative overflow-hidden bg-linear-to-r from-emerald-400 to-teal-500 text-zinc-950 font-bold hover:shadow-lg hover:shadow-emerald-500/50 transition-all group"
+                        >
+                          <span className="relative z-10 flex items-center gap-2">
+                            Go to Dashboard
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
-          </motion.div>
+          )}
 
           {/* Stats Grid */}
           <motion.div

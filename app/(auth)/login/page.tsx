@@ -335,12 +335,6 @@ export default function LoginPage() {
                     >
                       Password
                     </Label>
-                    <button
-                      type="button"
-                      className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
-                    >
-                      Forgot password?
-                    </button>
                   </div>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" />

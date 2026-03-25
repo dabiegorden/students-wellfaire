@@ -21,6 +21,12 @@ export interface IComplaint extends Document {
   adminReply?: string;
   repliedAt?: Date;
 
+  // AI Analysis fields
+  aiPriority?: "Low" | "Medium" | "High" | "Critical";
+  aiExplanation?: string;
+  aiScore?: number; // 0–100
+  aiAnalysedAt?: Date;
+
   // Tracking
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +92,24 @@ const ComplaintSchema = new Schema<IComplaint>(
       trim: true,
     },
     repliedAt: {
+      type: Date,
+    },
+
+    // AI Analysis
+    aiPriority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Critical"],
+    },
+    aiExplanation: {
+      type: String,
+      trim: true,
+    },
+    aiScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    aiAnalysedAt: {
       type: Date,
     },
   },
