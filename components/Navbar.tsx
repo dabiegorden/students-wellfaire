@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, ArrowUpRight, LogOut, User } from "lucide-react";
+import { Menu, X, ArrowUpRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,10 +22,11 @@ interface UserData {
 }
 
 const navLinks = [
-  { label: "Home", href: "#home" },
+  { label: "Home", href: "/" },
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "About", href: "#about" },
+  { label: "Announcements", href: "/announcements" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -38,7 +39,6 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fetch user profile from /api/me
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -57,14 +57,12 @@ export default function Navbar() {
         });
 
         if (!response.ok) {
-          // Token invalid, clear it
           localStorage.removeItem("token");
           setIsLoading(false);
           return;
         }
 
         const data = await response.json();
-        console.log("Fetched user data:", data || "No data");
         setUser(data.user);
       } catch (error) {
         console.error("Failed to fetch user:", error);
@@ -76,37 +74,26 @@ export default function Navbar() {
     fetchUser();
   }, []);
 
-  // Scroll listener
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Mobile menu body lock
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "unset";
   }, [isOpen]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
     };
-
     if (userMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
 
   const handleLogout = async () => {
@@ -121,47 +108,23 @@ export default function Navbar() {
           },
         });
       }
-
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
       localStorage.removeItem("token");
       setUser(null);
       setUserMenuOpen(false);
       router.push("/");
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Still clear local state even if API call fails
-      localStorage.removeItem("token");
-      setUser(null);
-      router.push("/");
-    }
-  };
-
-  const getDashboardLink = () => {
-    if (user?.role === "admin") {
-      return "/admin-dashboard";
-    } else {
-      return "/";
     }
   };
 
   const getDisplayName = () => {
     if (!user) return "";
-
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-
-    if (firstName && lastName) {
-      return `${firstName} ${lastName.charAt(0)}.`;
-    }
-
-    if (firstName) {
-      return firstName;
-    }
-
-    if (lastName) {
-      return lastName;
-    }
-
-    return user.email?.split("@")[0] || "User";
+    const { firstName, lastName, email } = user;
+    if (firstName && lastName) return `${firstName} ${lastName.charAt(0)}.`;
+    if (firstName) return firstName;
+    if (lastName) return lastName;
+    return email?.split("@")[0] || "User";
   };
 
   const getRoleDisplay = () => {
@@ -236,32 +199,46 @@ export default function Navbar() {
               </motion.div>
             </Link>
 
-            {/* Desktop Nav - Only show when not logged in */}
-            {!user && !isLoading && (
-              <ul className="hidden lg:flex items-center gap-1">
-                {navLinks.map((link, i) => (
-                  <motion.li
-                    key={link.href}
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.5 }}
+            {/* Desktop Nav — always visible */}
+            <ul className="hidden lg:flex items-center gap-1">
+              {navLinks.map((link, i) => (
+                <motion.li
+                  key={link.href}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                >
+                  <Link
+                    href={link.href}
+                    className="relative px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors group"
                   >
-                    <Link
-                      href={link.href}
-                      className="relative px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors group"
-                    >
-                      {link.label}
-                      <span className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </Link>
-                  </motion.li>
-                ))}
-              </ul>
-            )}
+                    {link.label}
+                    <span className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </motion.li>
+              ))}
 
-            {/* Desktop CTA / User Menu */}
+              {/* Dashboard link — admin only */}
+              {user?.role === "admin" && (
+                <motion.li
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: navLinks.length * 0.1, duration: 0.5 }}
+                >
+                  <Link
+                    href="/admin-dashboard"
+                    className="relative px-4 py-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors group"
+                  >
+                    Dashboard
+                    <span className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </motion.li>
+              )}
+            </ul>
+
+            {/* Desktop Right Side */}
             <div className="hidden lg:flex items-center gap-3">
               {isLoading ? (
-                // Loading skeleton
                 <div className="flex items-center gap-3 px-4 py-2">
                   <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />
                   <div className="space-y-2">
@@ -294,7 +271,6 @@ export default function Navbar() {
                     </div>
                   </motion.button>
 
-                  {/* Dropdown Menu */}
                   <AnimatePresence>
                     {userMenuOpen && (
                       <motion.div
@@ -323,52 +299,47 @@ export default function Navbar() {
                           )}
                         </div>
 
-                        {/* Additional Info */}
+                        {/* Student details */}
                         {user.role === "students" && (
-                          <div className="px-4 py-3 border-b border-zinc-800 text-xs">
+                          <div className="px-4 py-3 border-b border-zinc-800 text-xs space-y-1">
                             {user.programme && (
-                              <p className="text-zinc-300 mb-1">
+                              <p className="text-zinc-300">
                                 <span className="text-zinc-500">
-                                  Programme:
-                                </span>{" "}
+                                  Programme:{" "}
+                                </span>
                                 {user.programme}
                               </p>
                             )}
                             {user.level && (
-                              <p className="text-zinc-300 mb-1">
-                                <span className="text-zinc-500">Level:</span>{" "}
+                              <p className="text-zinc-300">
+                                <span className="text-zinc-500">Level: </span>
                                 {user.level}
                               </p>
                             )}
                             {user.faculty && (
                               <p className="text-zinc-300">
-                                <span className="text-zinc-500">Faculty:</span>{" "}
+                                <span className="text-zinc-500">Faculty: </span>
                                 {user.faculty}
                               </p>
                             )}
                           </div>
                         )}
 
+                        {/* Admin details */}
                         {user.role === "admin" && user.department && (
                           <div className="px-4 py-3 border-b border-zinc-800 text-xs">
                             <p className="text-zinc-300">
-                              <span className="text-zinc-500">Department:</span>{" "}
+                              <span className="text-zinc-500">
+                                Department:{" "}
+                              </span>
                               {user.department}
                             </p>
                           </div>
                         )}
 
-                        {/* Menu Actions */}
-                        <Link
-                          href={getDashboardLink()}
-                          className="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-emerald-400 transition-colors"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          {user?.role === "admin" ? "Dashboard" : ""}
-                        </Link>
                         <button
                           onClick={handleLogout}
-                          className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-red-400 transition-colors flex items-center gap-2 border-t border-zinc-800"
+                          className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-red-400 transition-colors flex items-center gap-2"
                         >
                           <LogOut className="w-4 h-4" />
                           Logout
@@ -432,7 +403,6 @@ export default function Navbar() {
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-40 lg:hidden"
           >
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -441,7 +411,6 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
             />
 
-            {/* Menu Content */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -451,7 +420,6 @@ export default function Navbar() {
             >
               <div className="flex flex-col h-full p-8 pt-28">
                 {isLoading ? (
-                  // Loading state
                   <div className="mb-8 pb-6 border-b border-zinc-800">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-zinc-800 animate-pulse" />
@@ -463,7 +431,8 @@ export default function Navbar() {
                   </div>
                 ) : user ? (
                   <>
-                    <div className="mb-8 pb-6 border-b border-zinc-800">
+                    {/* Mobile User Info */}
+                    <div className="mb-6 pb-6 border-b border-zinc-800">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-14 h-14 rounded-full bg-linear-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
                           <span className="text-xl font-bold text-zinc-950">
@@ -485,7 +454,6 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* Additional User Info */}
                       <div className="space-y-2 text-sm">
                         {user.role === "students" && (
                           <>
@@ -527,7 +495,6 @@ export default function Navbar() {
                             )}
                           </>
                         )}
-
                         {user.role === "admin" && (
                           <>
                             {user.staffId && (
@@ -553,14 +520,29 @@ export default function Navbar() {
                       </div>
                     </div>
 
-                    {/* Mobile Menu Links */}
-                    <Link
-                      href={getDashboardLink()}
-                      className="px-4 py-3 text-sm font-medium text-zinc-300 hover:text-emerald-400 transition-colors border-b border-zinc-800"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
+                    {/* Mobile Nav Links — always shown */}
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="px-4 py-3 text-sm font-medium text-zinc-300 hover:text-white transition-colors border-b border-zinc-800/50"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+
+                    {/* Dashboard link — admin only */}
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin-dashboard"
+                        className="px-4 py-3 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-zinc-800"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                    )}
+
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-3 text-sm font-medium text-zinc-300 hover:text-red-400 transition-colors mt-auto"
@@ -573,7 +555,7 @@ export default function Navbar() {
                   </>
                 ) : (
                   <>
-                    {navLinks.map((link, i) => (
+                    {navLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}

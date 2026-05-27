@@ -16,18 +16,12 @@ import {
   BarChart3,
   TrendingUp,
   BookOpen,
-  GraduationCap,
   Users,
-  MessageSquare,
-  Calendar,
-  FileText,
-  Video,
-  Award,
-  Signal,
   Hand,
   User,
   LogOut,
   Settings,
+  Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -79,6 +73,11 @@ const menuItems = [
         title: "Students",
         url: "/admin-dashboard/students",
         icon: Users,
+      },
+      {
+        title: "Announcements",
+        url: "/admin-dashboard/announcements",
+        icon: Megaphone,
       },
     ],
   },
