@@ -22,6 +22,7 @@ import {
   LogOut,
   Settings,
   Megaphone,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -64,6 +65,11 @@ const menuItems = [
   {
     title: "Community",
     items: [
+      {
+        title: "Messages",
+        url: "/admin-dashboard/messages",
+        icon: MessageSquare,
+      },
       {
         title: "Complaints",
         url: "/admin-dashboard/complaints",

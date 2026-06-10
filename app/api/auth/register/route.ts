@@ -29,6 +29,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Student ID validation: must be UGR or UGW followed by digits, 13 characters total
+    if (!/^(UGR|UGW)\d{10}$/i.test(studentId)) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid Student ID. It must start with UGR or UGW followed by digits, totaling 13 characters (e.g., UGR1234567890)",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Email validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json(
+        { error: "Invalid email address" },
+        { status: 400 },
+      );
+    }
+
     // Password validation
     if (password.length < 8) {
       return NextResponse.json(
@@ -44,9 +63,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedStudentId = studentId.toUpperCase();
+
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { studentId }],
+      $or: [{ email }, { studentId: normalizedStudentId }],
     });
 
     if (existingUser) {
@@ -56,7 +77,7 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         );
       }
-      if (existingUser.studentId === studentId) {
+      if (existingUser.studentId === normalizedStudentId) {
         return NextResponse.json(
           { error: "Student ID already registered" },
           { status: 409 },
@@ -71,7 +92,7 @@ export async function POST(request: NextRequest) {
       password,
       firstName,
       lastName,
-      studentId,
+      studentId: studentId.toUpperCase(),
       faculty,
       level,
       programme,

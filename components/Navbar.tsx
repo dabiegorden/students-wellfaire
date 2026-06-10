@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, ArrowUpRight, LogOut } from "lucide-react";
+import { Menu, X, ArrowUpRight, LogOut, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -230,6 +230,24 @@ export default function Navbar() {
                     className="relative px-4 py-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors group"
                   >
                     Dashboard
+                    <span className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </motion.li>
+              )}
+
+              {/* Messages link — students only */}
+              {user?.role === "students" && (
+                <motion.li
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: navLinks.length * 0.1, duration: 0.5 }}
+                >
+                  <Link
+                    href="/messages"
+                    className="relative px-4 py-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors group flex items-center gap-1.5"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Messages
                     <span className="absolute bottom-0 left-4 right-4 h-px bg-linear-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 </motion.li>
@@ -540,6 +558,18 @@ export default function Navbar() {
                         onClick={() => setIsOpen(false)}
                       >
                         Dashboard
+                      </Link>
+                    )}
+
+                    {/* Messages link — students only */}
+                    {user.role === "students" && (
+                      <Link
+                        href="/messages"
+                        className="px-4 py-3 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-zinc-800 flex items-center gap-2"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Messages
                       </Link>
                     )}
 

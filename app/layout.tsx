@@ -5,6 +5,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/context/user-context";
+import { SocketProvider } from "@/context/socket-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <UserProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <SocketProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </SocketProvider>
         </UserProvider>
         <Toaster richColors position="top-right" />
       </body>

@@ -21,6 +21,7 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   emailVerified?: boolean;
+  lastSeen?: Date;
 
   // Method to compare passwords
   comparePassword(password: string): Promise<boolean>;
@@ -116,6 +117,9 @@ const UserSchema = new Schema<IUser>(
     emailVerified: {
       type: Boolean,
       default: false,
+    },
+    lastSeen: {
+      type: Date,
     },
   },
   {

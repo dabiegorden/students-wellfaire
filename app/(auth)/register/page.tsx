@@ -110,22 +110,47 @@ export default function RegisterPage() {
       !formData.password ||
       !formData.confirmPassword
     ) {
-      setError("Please fill in all fields");
+      const message = "Please fill in all fields";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    // Student ID validation: must start with UGR or UGW followed by digits, 13 characters total
+    if (!/^(UGR|UGW)\d{10}$/i.test(formData.studentId)) {
+      const message =
+        "Invalid Student ID. (e.g., UGR1234567890 | UGW1234567890)";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    // Email validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      const message = "Please enter a valid email address";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (!termsAccepted) {
-      setError("You must accept the terms and conditions");
+      const message = "You must accept the terms and conditions";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      const message = "Passwords do not match";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters");
+      const message = "Password must be at least 8 characters";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -143,7 +168,9 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Registration failed");
+        const message = data.error || "Registration failed";
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -157,7 +184,10 @@ export default function RegisterPage() {
       // Redirect to dashboard
       router.push("/");
     } catch (err) {
-      setError("An error occurred during registration. Please try again.");
+      const message =
+        "An error occurred during registration. Please try again.";
+      setError(message);
+      toast.error(message);
       console.error("Registration error:", err);
     } finally {
       setIsLoading(false);
@@ -401,12 +431,17 @@ export default function RegisterPage() {
                     <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" />
                     <Input
                       id="studentId"
-                      placeholder="e.g., CUG2024001"
+                      placeholder="e.g., UGR1234567890"
+                      maxLength={13}
                       value={formData.studentId}
                       onChange={handleInputChange}
                       className="pl-12 h-12 bg-zinc-800/50 border-zinc-700/50 focus:border-emerald-500/50 focus:bg-zinc-800 text-white placeholder:text-zinc-500 rounded-xl"
                     />
                   </div>
+                  <p className="text-xs text-zinc-500">
+                    Must start with UGR or UGW followed by digits, totaling 13
+                    characters
+                  </p>
                 </div>
 
                 {/* Name Fields */}
