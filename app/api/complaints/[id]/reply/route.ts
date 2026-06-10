@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
 import Complaint from "@/models/Complaint";
 import { NextRequest, NextResponse } from "next/server";
+import { sendComplaintReplyNotificationToStudent } from "@/lib/resend";
 
 export async function PATCH(
   request: NextRequest,
@@ -30,6 +31,7 @@ export async function PATCH(
     if (adminReply) {
       updateData.adminReply = adminReply;
       updateData.repliedAt = new Date();
+      updateData.repliedBy = "admin";
     }
 
     if (status) {
@@ -46,6 +48,33 @@ export async function PATCH(
       return NextResponse.json(
         { error: "Complaint not found" },
         { status: 404 },
+      );
+    }
+
+    if (adminReply) {
+      const student = complaint.studentId as unknown as {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+      } | null;
+
+      sendComplaintReplyNotificationToStudent(
+        {
+          _id: complaint._id.toString(),
+          title: complaint.title,
+          category: complaint.category,
+          description: complaint.description,
+          priority: complaint.priority,
+          status: complaint.status,
+          studentName:
+            complaint.studentName ||
+            `${student?.firstName || ""} ${student?.lastName || ""}`.trim(),
+          studentEmail: complaint.studentEmail || student?.email || "",
+        },
+        adminReply,
+        "admin",
+      ).catch((err) =>
+        console.error("Student reply notification email failed:", err),
       );
     }
 

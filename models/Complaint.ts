@@ -20,6 +20,7 @@ export interface IComplaint extends Document {
   adminId?: mongoose.Types.ObjectId;
   adminReply?: string;
   repliedAt?: Date;
+  repliedBy?: "admin" | "ai";
 
   // AI Analysis fields
   aiPriority?: "Low" | "Medium" | "High" | "Critical";
@@ -93,6 +94,10 @@ const ComplaintSchema = new Schema<IComplaint>(
     },
     repliedAt: {
       type: Date,
+    },
+    repliedBy: {
+      type: String,
+      enum: ["admin", "ai"],
     },
 
     // AI Analysis

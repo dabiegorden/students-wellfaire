@@ -276,3 +276,7 @@ export function initSocket(io: SocketIOServer) {
 export function isUserOnline(userId: string) {
   return onlineUsers.has(userId);
 }
+
+export function isAdminOnline() {
+  return onlineAdmins.size > 0;
+}

@@ -4,6 +4,9 @@ import { connectDB } from "@/lib/db";
 import Complaint from "@/models/Complaint";
 import User from "@/models/User";
 import { GoogleGenAI } from "@google/genai";
+import { isAdminOnline } from "@/lib/socket-server";
+import { sendNewComplaintNotificationToAdmins } from "@/lib/resend";
+import { scheduleAIAutoReply } from "@/lib/ai-auto-reply";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -118,6 +121,31 @@ export async function POST(request: NextRequest) {
     });
 
     await newComplaint.save();
+
+    // Notify admins by email so they can respond promptly
+    const admins = await User.find({ role: "admin" }).select("email").lean();
+    const adminEmails = admins
+      .map((admin) => admin.email)
+      .filter((email): email is string => !!email);
+
+    sendNewComplaintNotificationToAdmins(
+      {
+        _id: newComplaint._id.toString(),
+        title: newComplaint.title,
+        category: newComplaint.category,
+        description: newComplaint.description,
+        priority: newComplaint.priority,
+        status: newComplaint.status,
+        studentName: newComplaint.studentName,
+        studentEmail: newComplaint.studentEmail,
+      },
+      adminEmails,
+    ).catch((err) => console.error("Admin notification email failed:", err));
+
+    // If no admin is currently online, schedule an AI assistant reply
+    if (!isAdminOnline()) {
+      scheduleAIAutoReply(newComplaint._id.toString());
+    }
 
     return NextResponse.json(
       {

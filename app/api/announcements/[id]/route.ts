@@ -114,7 +114,9 @@ export async function PATCH(
         );
 
         const platformUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+          process.env.NEXT_PUBLIC_APP_URL ||
+          process.env.NEXT_PUBLIC_API_URL ||
+          "http://localhost:3000";
 
         const postedAt = new Date().toLocaleDateString("en-GB", {
           day: "2-digit",
