@@ -8,6 +8,9 @@
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "lint": "eslint"
   },
+  "engines": {
+    "node": ">=22.9.0"
+  },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@google/genai": "^1.46.0",
