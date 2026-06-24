@@ -1,43 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Announcement from "@/models/Announcement";
-import User from "@/models/User";
-import { Types } from "mongoose";
+import { eq } from "drizzle-orm";
+import { db } from "@/src/db";
+import { announcements, users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 import { Resend } from "resend";
 import { AnnouncementEmailTemplate } from "@/components/AnnouncementEmailTemplate";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ── GET /api/announcements/[id] ─────────────────────────────────────────────
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const decoded = getAuth(request);
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid announcement ID" },
-        { status: 400 },
-      );
-    }
-
-    const announcement = await Announcement.findById(id).lean();
+    const [announcement] = await db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.id, id))
+      .limit(1);
 
     if (!announcement) {
       return NextResponse.json(
@@ -46,7 +32,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ announcement });
+    return NextResponse.json({
+      announcement: { ...announcement, _id: announcement.id },
+    });
   } catch (error) {
     console.error("Error fetching announcement:", error);
     return NextResponse.json(
@@ -56,39 +44,31 @@ export async function GET(
   }
 }
 
-// ── PATCH /api/announcements/[id] ──────────────────────────────────────────
-// Admin only — update title, category, content, isPinned; optionally re-send emails
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid announcement ID" },
-        { status: 400 },
-      );
-    }
+    const { title, category, content, isPinned, resendEmail } =
+      await request.json();
 
-    const body = await request.json();
-    const { title, category, content, isPinned, resendEmail } = body;
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    if (title !== undefined) updateData.title = title;
+    if (category !== undefined) updateData.category = category;
+    if (content !== undefined) updateData.content = content;
+    if (isPinned !== undefined) updateData.isPinned = isPinned;
 
-    const announcement = await Announcement.findById(id);
+    let [announcement] = await db
+      .update(announcements)
+      .set(updateData)
+      .where(eq(announcements.id, id))
+      .returning();
 
     if (!announcement) {
       return NextResponse.json(
@@ -97,27 +77,22 @@ export async function PATCH(
       );
     }
 
-    if (title !== undefined) announcement.title = title;
-    if (category !== undefined) announcement.category = category;
-    if (content !== undefined) announcement.content = content;
-    if (isPinned !== undefined) announcement.isPinned = isPinned;
-
-    await announcement.save();
-
-    // Optionally re-send email blast after edit
     if (resendEmail) {
       try {
-        const userId = (decoded as any).userId;
-        const admin = await User.findById(userId);
-        const students = await User.find({ role: "students" }).select(
-          "email firstName",
-        );
+        const [admin] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, decoded.userId))
+          .limit(1);
+        const studentList = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.role, "students"));
 
         const platformUrl =
           process.env.NEXT_PUBLIC_APP_URL ||
           process.env.NEXT_PUBLIC_API_URL ||
           "http://localhost:3000";
-
         const postedAt = new Date().toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "long",
@@ -125,14 +100,14 @@ export async function PATCH(
         });
 
         const BATCH_SIZE = 50;
-        for (let i = 0; i < students.length; i += BATCH_SIZE) {
-          const batch = students.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < studentList.length; i += BATCH_SIZE) {
+          const batch = studentList.slice(i, i + BATCH_SIZE);
           await Promise.allSettled(
             batch.map((student) =>
               resend.emails.send({
-                from: `SWIS Platform <${process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"}>`,
+                from: `Students Wellfare <${process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"}>`,
                 to: [student.email],
-                subject: `📢 [Updated] Announcement: ${announcement.title}`,
+                subject: `[Updated] Announcement: ${announcement.title}`,
                 react: AnnouncementEmailTemplate({
                   studentFirstName: student.firstName,
                   announcementTitle: announcement.title,
@@ -149,16 +124,18 @@ export async function PATCH(
           );
         }
 
-        announcement.emailSent = true;
-        announcement.emailSentAt = new Date();
-        await announcement.save();
+        [announcement] = await db
+          .update(announcements)
+          .set({ emailSent: true, emailSentAt: new Date() })
+          .where(eq(announcements.id, id))
+          .returning();
       } catch (emailError) {
         console.error("Re-send email failed:", emailError);
       }
     }
 
     return NextResponse.json({
-      announcement,
+      announcement: { ...announcement, _id: announcement.id },
       message: "Announcement updated successfully",
     });
   } catch (error) {
@@ -170,36 +147,21 @@ export async function PATCH(
   }
 }
 
-// ── DELETE /api/announcements/[id] ─────────────────────────────────────────
-// Admin only
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid announcement ID" },
-        { status: 400 },
-      );
-    }
-
-    const announcement = await Announcement.findByIdAndDelete(id);
+    const [announcement] = await db
+      .delete(announcements)
+      .where(eq(announcements.id, id))
+      .returning();
 
     if (!announcement) {
       return NextResponse.json(

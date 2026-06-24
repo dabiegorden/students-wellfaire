@@ -27,7 +27,7 @@ interface StudentItem {
 }
 
 export function ChatInterface() {
-  const { user } = useUser();
+  const { user, isLoading: userLoading } = useUser();
   const { socket, isOnline, isSupportOnline } = useSocket();
 
   const isAdmin = user?.role === "admin";
@@ -74,8 +74,15 @@ export function ChatInterface() {
       }
     };
 
-    if (token) load();
-  }, [token, isAdmin]);
+    // Wait until the user is known so we branch to the correct (admin vs
+    // student) view and load the right conversations on the first try.
+    if (token && user) load();
+  }, [token, isAdmin, user]);
+
+  // Re-request presence whenever the chat opens so online indicators are fresh.
+  useEffect(() => {
+    if (socket) socket.emit("presence:sync");
+  }, [socket]);
 
   // Load messages when a conversation is selected
   useEffect(() => {
@@ -280,10 +287,10 @@ export function ChatInterface() {
     }, 1500);
   };
 
-  if (loading) {
+  if (userLoading || loading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="relative h-10 w-10 animate-spin rounded-full border-4 border-zinc-800 border-t-emerald-400" />
+        <div className="relative h-10 w-10 animate-spin rounded-full border-4 border-border border-t-cug-green" />
       </div>
     );
   }
@@ -292,7 +299,7 @@ export function ChatInterface() {
     ? selected
       ? `${selected.student?.firstName} ${selected.student?.lastName}`
       : "Select a conversation"
-    : "Student Wellfaire Support";
+    : "Student Wellfare Support";
 
   const headerOnline = isAdmin
     ? selected
@@ -307,19 +314,19 @@ export function ChatInterface() {
     : "SW";
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-950/60 backdrop-blur-xl">
+    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur-xl">
       {isAdmin && (
-        <div className="flex w-full max-w-xs flex-col border-r border-zinc-800/50">
-          <div className="border-b border-zinc-800/50 p-4">
+        <div className="flex w-full max-w-xs flex-col border-r border-border">
+          <div className="border-b border-border p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-foreground">
                 {showNewChat ? "New Message" : "Messages"}
               </h2>
               {showNewChat ? (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-zinc-400 hover:text-white"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowNewChat(false)}
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -328,7 +335,7 @@ export function ChatInterface() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-zinc-400 hover:text-white"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                   onClick={handleOpenNewChat}
                   title="Message a student"
                 >
@@ -337,19 +344,19 @@ export function ChatInterface() {
               )}
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search students..."
-                className="border-zinc-800 bg-zinc-900 pl-9 text-sm text-white placeholder:text-zinc-500"
+                className="border-border bg-card pl-9 text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
           <ScrollArea className="flex-1">
             {showNewChat ? (
               studentsLoading ? (
-                <div className="flex items-center justify-center p-6 text-sm text-zinc-500">
+                <div className="flex items-center justify-center p-6 text-sm text-muted-foreground">
                   Loading students...
                 </div>
               ) : (
@@ -370,28 +377,28 @@ export function ChatInterface() {
                         <button
                           key={student._id}
                           onClick={() => handleStartConversation(student)}
-                          className="flex items-center gap-3 border-b border-zinc-800/50 px-4 py-3 text-left transition-colors hover:bg-zinc-800/50"
+                          className="flex items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-muted"
                         >
                           <div className="relative shrink-0">
-                            <Avatar className="h-11 w-11 border-2 border-linear-to-br from-emerald-400 to-teal-600">
-                              <AvatarFallback className="bg-linear-to-br from-emerald-400 to-teal-600 text-zinc-950 font-bold text-sm">
+                            <Avatar className="h-11 w-11 border-2 border-linear-to-br from-cug-green to-cug-green-dark">
+                              <AvatarFallback className="bg-linear-to-br from-cug-green to-cug-green-dark text-foreground font-bold text-sm">
                                 {initials}
                               </AvatarFallback>
                             </Avatar>
                             <span
                               className={cn(
-                                "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-zinc-950",
+                                "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-border",
                                 isOnline(student._id)
-                                  ? "bg-emerald-400"
-                                  : "bg-zinc-600",
+                                  ? "bg-cug-green"
+                                  : "bg-muted",
                               )}
                             />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-white">
+                            <p className="truncate text-sm font-semibold text-foreground">
                               {student.firstName} {student.lastName}
                             </p>
-                            <p className="truncate text-xs text-zinc-400">
+                            <p className="truncate text-xs text-muted-foreground">
                               {student.email}
                             </p>
                           </div>
@@ -399,7 +406,7 @@ export function ChatInterface() {
                       );
                     })}
                   {students.length === 0 && (
-                    <div className="flex items-center justify-center p-6 text-center text-sm text-zinc-500">
+                    <div className="flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
                       No students found.
                     </div>
                   )}
@@ -422,25 +429,25 @@ export function ChatInterface() {
         {(!isAdmin || selected) ? (
           <>
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-zinc-800/50 p-4">
+            <div className="flex items-center gap-3 border-b border-border p-4">
               <div className="relative">
-                <Avatar className="h-10 w-10 border-2 border-linear-to-br from-emerald-400 to-teal-600">
-                  <AvatarFallback className="bg-linear-to-br from-emerald-400 to-teal-600 text-zinc-950 font-bold text-sm">
+                <Avatar className="h-10 w-10 border-2 border-linear-to-br from-cug-green to-cug-green-dark">
+                  <AvatarFallback className="bg-linear-to-br from-cug-green to-cug-green-dark text-foreground font-bold text-sm">
                     {headerInitials}
                   </AvatarFallback>
                 </Avatar>
                 <span
                   className={cn(
-                    "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-zinc-950",
-                    headerOnline ? "bg-emerald-400" : "bg-zinc-600",
+                    "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-border",
+                    headerOnline ? "bg-cug-green" : "bg-muted",
                   )}
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {headerName}
                 </p>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-muted-foreground">
                   {otherTyping
                     ? "typing..."
                     : headerOnline
@@ -459,7 +466,7 @@ export function ChatInterface() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
               <div className="flex flex-col gap-3">
                 {messages.length === 0 && (
-                  <div className="flex flex-1 items-center justify-center py-10 text-center text-sm text-zinc-500">
+                  <div className="flex flex-1 items-center justify-center py-10 text-center text-sm text-muted-foreground">
                     No messages yet. Say hello!
                   </div>
                 )}
@@ -472,10 +479,10 @@ export function ChatInterface() {
                 ))}
                 {otherTyping && (
                   <div className="flex justify-start">
-                    <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-zinc-800 px-4 py-2.5">
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400" />
+                    <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
                     </div>
                   </div>
                 )}
@@ -483,7 +490,7 @@ export function ChatInterface() {
             </div>
 
             {/* Input */}
-            <div className="flex items-center gap-2 border-t border-zinc-800/50 p-4">
+            <div className="flex items-center gap-2 border-t border-border p-4">
               <Input
                 value={input}
                 onChange={(e) => handleInputChange(e.target.value)}
@@ -494,12 +501,12 @@ export function ChatInterface() {
                   }
                 }}
                 placeholder="Type a message..."
-                className="border-zinc-800 bg-zinc-900 text-white placeholder:text-zinc-500"
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
               <Button
                 onClick={handleSend}
                 disabled={!input.trim()}
-                className="bg-linear-to-r from-emerald-400 to-teal-500 text-zinc-950 hover:opacity-90 shrink-0"
+                className="bg-linear-to-r from-cug-green to-cug-green-dark text-foreground hover:opacity-90 shrink-0"
                 size="icon"
               >
                 <Send className="h-4 w-4" />
@@ -507,7 +514,7 @@ export function ChatInterface() {
             </div>
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-zinc-500">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
             <MessageSquare className="h-12 w-12" />
             <p className="text-sm">Select a conversation to start chatting</p>
           </div>

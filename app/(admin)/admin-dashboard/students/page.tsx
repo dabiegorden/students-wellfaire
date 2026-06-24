@@ -260,8 +260,8 @@ export default function StudentsPage() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-cug-green" />
       </div>
     );
   }
@@ -269,8 +269,8 @@ export default function StudentsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <main className="pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-background">
+      <main className="pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
           {/* Header */}
           <motion.div
@@ -279,10 +279,10 @@ export default function StudentsPage() {
             className="mb-8 flex justify-between items-center"
           >
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
                 Students Management
               </h1>
-              <p className="text-zinc-400">
+              <p className="text-muted-foreground">
                 View and manage all registered students
               </p>
             </div>
@@ -301,7 +301,7 @@ export default function StudentsPage() {
                 });
                 setShowModal(true);
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-cug-green hover:bg-cug-green-dark text-white gap-2"
             >
               <Plus className="w-4 h-4" />
               Add Student
@@ -313,7 +313,7 @@ export default function StudentsPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+              className="mb-6 flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive"
             >
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">{error}</span>
@@ -334,16 +334,16 @@ export default function StudentsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4"
+            className="mb-6 bg-card border border-border rounded-xl p-4 space-y-4"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">Filters</h2>
+              <Filter className="w-5 h-5 text-cug-green" />
+              <h2 className="text-lg font-semibold text-foreground">Filters</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
+                <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                 <Input
                   placeholder="Search by name or email..."
                   value={search}
@@ -351,7 +351,7 @@ export default function StudentsPage() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-10 h-10 bg-zinc-800/50 border-zinc-700/50 focus:border-emerald-500/50 text-white placeholder:text-zinc-500 rounded-lg"
+                  className="pl-10 h-10 bg-muted border-border focus:border-cug-green/50 text-foreground placeholder:text-muted-foreground rounded-lg"
                 />
               </div>
 
@@ -361,7 +361,7 @@ export default function StudentsPage() {
                   setFacultyFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 px-3 bg-zinc-800/50 border border-zinc-700/50 focus:border-emerald-500/50 text-white rounded-lg focus:outline-none appearance-none cursor-pointer"
+                className="h-10 px-3 bg-muted border border-border focus:border-cug-green/50 text-foreground rounded-lg focus:outline-none appearance-none cursor-pointer"
               >
                 <option value="">All Faculties</option>
                 {faculties.map((faculty) => (
@@ -377,7 +377,7 @@ export default function StudentsPage() {
                   setLevelFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 px-3 bg-zinc-800/50 border border-zinc-700/50 focus:border-emerald-500/50 text-white rounded-lg focus:outline-none appearance-none cursor-pointer"
+                className="h-10 px-3 bg-muted border border-border focus:border-cug-green/50 text-foreground rounded-lg focus:outline-none appearance-none cursor-pointer"
               >
                 <option value="">All Levels</option>
                 {levels.map((level) => (
@@ -393,77 +393,77 @@ export default function StudentsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"
+            className="bg-card border border-border rounded-xl overflow-hidden"
           >
             {loading ? (
               <div className="flex items-center justify-center p-12">
-                <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+                <Loader className="w-8 h-8 animate-spin text-cug-green" />
               </div>
             ) : students.length === 0 ? (
               <div className="text-center p-12">
-                <p className="text-zinc-400">No students found</p>
+                <p className="text-muted-foreground">No students found</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-zinc-800/50 border-b border-zinc-700">
+                  <thead className="bg-muted border-b border-border">
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Name
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Email
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Student ID
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Faculty
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Level
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Programme
                       </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-zinc-300">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-border">
                     {students.map((student) => (
                       <tr
                         key={student._id}
-                        className="hover:bg-zinc-800/50 transition-colors"
+                        className="hover:bg-muted transition-colors"
                       >
                         <td className="px-6 py-4">
-                          <p className="text-white font-medium">
+                          <p className="text-foreground font-medium">
                             {student.firstName} {student.lastName}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-zinc-400 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             {student.email}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-white text-sm font-mono">
+                          <p className="text-foreground text-sm font-mono">
                             {student.studentId}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-zinc-300 text-sm truncate max-w-xs">
+                          <p className="text-foreground text-sm truncate max-w-xs">
                             {student.faculty}
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/30">
+                          <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-cug-green/10 text-cug-green border border-cug-green/30">
                             {student.level}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-zinc-300 text-sm">
+                          <p className="text-foreground text-sm">
                             {student.programme}
                           </p>
                         </td>
@@ -473,7 +473,7 @@ export default function StudentsPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleEdit(student)}
-                              className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                              className="border-cug-green/50 text-cug-green hover:bg-cug-green/10"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -481,7 +481,7 @@ export default function StudentsPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleDelete(student._id)}
-                              className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                              className="border-destructive/40/50 text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -496,8 +496,8 @@ export default function StudentsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-800/50">
-                <span className="text-sm text-zinc-400">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted">
+                <span className="text-sm text-muted-foreground">
                   Page {page} of {totalPages}
                 </span>
                 <div className="flex items-center gap-2">
@@ -530,15 +530,15 @@ export default function StudentsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+            className="bg-card border border-border rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold text-foreground">
                 {editingId ? "Edit Student" : "Add New Student"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -554,7 +554,7 @@ export default function StudentsPage() {
                     setFormData({ ...formData, firstName: e.target.value })
                   }
                   required
-                  className="col-span-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="col-span-1 px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cug-green"
                 />
                 <input
                   type="text"
@@ -564,7 +564,7 @@ export default function StudentsPage() {
                     setFormData({ ...formData, lastName: e.target.value })
                   }
                   required
-                  className="col-span-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="col-span-1 px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cug-green"
                 />
               </div>
 
@@ -576,7 +576,7 @@ export default function StudentsPage() {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cug-green"
               />
 
               <input
@@ -587,7 +587,7 @@ export default function StudentsPage() {
                   setFormData({ ...formData, studentId: e.target.value })
                 }
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cug-green"
               />
 
               {!editingId && (
@@ -600,7 +600,7 @@ export default function StudentsPage() {
                   }
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cug-green"
                 />
               )}
 
@@ -610,7 +610,7 @@ export default function StudentsPage() {
                   setFormData({ ...formData, faculty: e.target.value })
                 }
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-cug-green"
               >
                 <option value="">Select Faculty</option>
                 {faculties.map((faculty) => (
@@ -626,7 +626,7 @@ export default function StudentsPage() {
                   setFormData({ ...formData, level: e.target.value })
                 }
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-cug-green"
               >
                 <option value="">Select Level</option>
                 {levels.map((level) => (
@@ -642,7 +642,7 @@ export default function StudentsPage() {
                   setFormData({ ...formData, programme: e.target.value })
                 }
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-cug-green"
               >
                 <option value="">Select Programme</option>
                 {programmes.map((programme) => (
@@ -655,7 +655,7 @@ export default function StudentsPage() {
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="flex-1 bg-cug-green hover:bg-cug-green-dark text-white"
                 >
                   {editingId ? "Update" : "Create"}
                 </Button>

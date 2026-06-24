@@ -1,49 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Conversation from "@/models/Conversation";
-import User from "@/models/User";
+import { and, eq, desc } from "drizzle-orm";
+import { db } from "@/src/db";
+import { conversations, users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
+
+const studentCols = {
+  id: users.id,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  email: users.email,
+  studentId: users.studentId,
+  lastSeen: users.lastSeen,
+};
+
+function shape(row: { conversation: typeof conversations.$inferSelect; student: any }) {
+  return {
+    ...row.conversation,
+    _id: row.conversation.id,
+    student: row.student ? { ...row.student, _id: row.student.id } : null,
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
+    const decoded = getAuth(request);
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (decoded.role === "admin") {
-      const conversations = await Conversation.find({})
-        .sort({ lastMessageAt: -1, updatedAt: -1 })
-        .populate("student", "firstName lastName email studentId lastSeen")
-        .lean();
+      const rows = await db
+        .select({ conversation: conversations, student: studentCols })
+        .from(conversations)
+        .leftJoin(users, eq(conversations.student, users.id))
+        .orderBy(desc(conversations.lastMessageAt), desc(conversations.updatedAt));
 
-      return NextResponse.json({ conversations });
+      return NextResponse.json({ conversations: rows.map(shape) });
     }
 
     // Student: find or create their conversation
-    let conversation = await Conversation.findOne({
-      student: decoded.userId,
-    })
-      .populate("student", "firstName lastName email studentId lastSeen")
-      .lean();
+    let [row] = await db
+      .select({ conversation: conversations, student: studentCols })
+      .from(conversations)
+      .leftJoin(users, eq(conversations.student, users.id))
+      .where(eq(conversations.student, decoded.userId))
+      .limit(1);
 
-    if (!conversation) {
-      const created = await Conversation.create({ student: decoded.userId });
-      conversation = await Conversation.findById(created._id)
-        .populate("student", "firstName lastName email studentId lastSeen")
-        .lean();
+    if (!row) {
+      const [created] = await db
+        .insert(conversations)
+        .values({ student: decoded.userId })
+        .returning();
+      [row] = await db
+        .select({ conversation: conversations, student: studentCols })
+        .from(conversations)
+        .leftJoin(users, eq(conversations.student, users.id))
+        .where(eq(conversations.id, created.id))
+        .limit(1);
     }
 
-    return NextResponse.json({ conversation });
+    return NextResponse.json({ conversation: shape(row) });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return NextResponse.json(
@@ -55,16 +71,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
+    const decoded = getAuth(request);
     if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -77,21 +84,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const student = await User.findOne({ _id: studentId, role: "students" });
+    const [student] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, studentId), eq(users.role, "students")))
+      .limit(1);
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    let conversation = await Conversation.findOne({ student: studentId });
+    let [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.student, studentId))
+      .limit(1);
     if (!conversation) {
-      conversation = await Conversation.create({ student: studentId });
+      [conversation] = await db
+        .insert(conversations)
+        .values({ student: studentId })
+        .returning();
     }
 
-    const populated = await Conversation.findById(conversation._id)
-      .populate("student", "firstName lastName email studentId lastSeen")
-      .lean();
+    const [row] = await db
+      .select({ conversation: conversations, student: studentCols })
+      .from(conversations)
+      .leftJoin(users, eq(conversations.student, users.id))
+      .where(eq(conversations.id, conversation.id))
+      .limit(1);
 
-    return NextResponse.json({ conversation: populated });
+    return NextResponse.json({ conversation: shape(row) });
   } catch (error) {
     console.error("Error creating conversation:", error);
     return NextResponse.json(

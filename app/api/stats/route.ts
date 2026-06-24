@@ -1,45 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
-import Complaint from "@/models/Complaint";
+import { and, eq, gte, inArray, isNotNull, desc, sql } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints, users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // User statistics
-    const totalStudents = await User.countDocuments({ role: "students" });
-    const totalAdmins = await User.countDocuments({ role: "admin" });
+    const countOf = async (clause: any) => {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(clause.table)
+        .where(clause.where);
+      return count;
+    };
 
-    // Complaint statistics
-    const totalComplaints = await Complaint.countDocuments();
-    const pendingComplaints = await Complaint.countDocuments({
-      status: "Pending",
+    const totalStudents = await countOf({
+      table: users,
+      where: eq(users.role, "students"),
     });
-    const inProgressComplaints = await Complaint.countDocuments({
-      status: "In Progress",
-    });
-    const resolvedComplaints = await Complaint.countDocuments({
-      status: "Resolved",
-    });
-    const closedComplaints = await Complaint.countDocuments({
-      status: "Closed",
+    const totalAdmins = await countOf({
+      table: users,
+      where: eq(users.role, "admin"),
     });
 
-    // Calculate resolution rate
+    const [{ count: totalComplaints }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(complaints);
+    const pendingComplaints = await countOf({
+      table: complaints,
+      where: eq(complaints.status, "Pending"),
+    });
+    const inProgressComplaints = await countOf({
+      table: complaints,
+      where: eq(complaints.status, "In Progress"),
+    });
+    const resolvedComplaints = await countOf({
+      table: complaints,
+      where: eq(complaints.status, "Resolved"),
+    });
+    const closedComplaints = await countOf({
+      table: complaints,
+      where: eq(complaints.status, "Closed"),
+    });
+
     const resolutionRate =
       totalComplaints > 0
         ? Math.round(
@@ -47,170 +55,99 @@ export async function GET(request: NextRequest) {
           )
         : 0;
 
-    // Complaints by priority
-    const complaintsByPriority = await Complaint.aggregate([
-      {
-        $group: {
-          _id: "$priority",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-    ]);
+    const complaintsByPriority = await db
+      .select({ _id: complaints.priority, count: sql<number>`count(*)::int` })
+      .from(complaints)
+      .groupBy(complaints.priority)
+      .orderBy(desc(sql`count(*)`));
 
-    // Complaints by category
-    const complaintsByCategory = await Complaint.aggregate([
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-    ]);
+    const complaintsByCategory = await db
+      .select({ _id: complaints.category, count: sql<number>`count(*)::int` })
+      .from(complaints)
+      .groupBy(complaints.category)
+      .orderBy(desc(sql`count(*)`));
 
-    // Complaints by status
-    const complaintsByStatus = await Complaint.aggregate([
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const complaintsByStatus = await db
+      .select({ _id: complaints.status, count: sql<number>`count(*)::int` })
+      .from(complaints)
+      .groupBy(complaints.status);
 
-    // Complaints by faculty
-    const complaintsByFaculty = await Complaint.aggregate([
-      {
-        $lookup: {
-          from: "users",
-          localField: "studentId",
-          foreignField: "_id",
-          as: "student",
-        },
-      },
-      {
-        $unwind: "$student",
-      },
-      {
-        $group: {
-          _id: "$student.faculty",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-      {
-        $limit: 5,
-      },
-    ]);
+    const complaintsByFaculty = await db
+      .select({ _id: users.faculty, count: sql<number>`count(*)::int` })
+      .from(complaints)
+      .innerJoin(users, eq(complaints.studentId, users.id))
+      .groupBy(users.faculty)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5);
 
-    // Recent complaints trend (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const complaintsLast7Days = await Complaint.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: sevenDaysAgo },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ]);
+    const complaintsLast7Days = await db
+      .select({
+        _id: sql<string>`to_char(${complaints.createdAt}, 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(complaints)
+      .where(gte(complaints.createdAt, sevenDaysAgo))
+      .groupBy(sql`to_char(${complaints.createdAt}, 'YYYY-MM-DD')`)
+      .orderBy(sql`to_char(${complaints.createdAt}, 'YYYY-MM-DD')`);
 
-    // Average resolution time (in hours)
-    const resolvedComplaintsWithTime = await Complaint.aggregate([
-      {
-        $match: {
-          status: { $in: ["Resolved", "Closed"] },
-          repliedAt: { $exists: true },
-        },
-      },
-      {
-        $project: {
-          resolutionTime: {
-            $divide: [
-              { $subtract: ["$repliedAt", "$createdAt"] },
-              1000 * 60 * 60, // Convert to hours
-            ],
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          avgTime: { $avg: "$resolutionTime" },
-        },
-      },
-    ]);
+    const [avgRow] = await db
+      .select({
+        avgTime: sql<number>`avg(extract(epoch from (${complaints.repliedAt} - ${complaints.createdAt})) / 3600)`,
+      })
+      .from(complaints)
+      .where(
+        and(
+          inArray(complaints.status, ["Resolved", "Closed"]),
+          isNotNull(complaints.repliedAt),
+        ),
+      );
 
-    const averageResolutionTime =
-      resolvedComplaintsWithTime.length > 0
-        ? Math.round(resolvedComplaintsWithTime[0].avgTime * 10) / 10
-        : 0;
+    const averageResolutionTime = avgRow?.avgTime
+      ? Math.round(Number(avgRow.avgTime) * 10) / 10
+      : 0;
 
-    // Students by faculty
-    const studentsByFaculty = await User.aggregate([
-      {
-        $match: { role: "students" },
-      },
-      {
-        $group: {
-          _id: "$faculty",
-          count: { $sum: 1 },
+    const studentsByFaculty = await db
+      .select({ _id: users.faculty, count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, "students"))
+      .groupBy(users.faculty)
+      .orderBy(desc(sql`count(*)`));
+
+    const studentsByLevel = await db
+      .select({ _id: users.level, count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, "students"))
+      .groupBy(users.level)
+      .orderBy(users.level);
+
+    const recentRows = await db
+      .select({
+        complaint: complaints,
+        student: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          studentId: users.studentId,
         },
-      },
-      {
-        $sort: { count: -1 },
-      },
-    ]);
+      })
+      .from(complaints)
+      .leftJoin(users, eq(complaints.studentId, users.id))
+      .orderBy(desc(complaints.createdAt))
+      .limit(5);
 
-    // Students by level
-    const studentsByLevel = await User.aggregate([
-      {
-        $match: { role: "students" },
-      },
-      {
-        $group: {
-          _id: "$level",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ]);
-
-    // Recent activity
-    const recentComplaints = await Complaint.find()
-      .populate("studentId", "firstName lastName email studentId")
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
+    const recentComplaints = recentRows.map((r) => ({
+      ...r.complaint,
+      _id: r.complaint.id,
+      student: r.student,
+    }));
 
     return NextResponse.json({
       stats: {
-        users: {
-          totalStudents,
-          totalAdmins,
-          studentsByFaculty,
-          studentsByLevel,
-        },
+        users: { totalStudents, totalAdmins, studentsByFaculty, studentsByLevel },
         complaints: {
           total: totalComplaints,
           pending: pendingComplaints,

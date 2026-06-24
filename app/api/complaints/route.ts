@@ -1,88 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Complaint from "@/models/Complaint";
-import User from "@/models/User";
-import { GoogleGenAI } from "@google/genai";
+import { and, eq, or, ilike, desc, sql } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints, users } from "@/src/schema";
+import { getCurrentUser } from "@/lib/auth";
 import { isAdminOnline } from "@/lib/socket-server";
 import { sendNewComplaintNotificationToAdmins } from "@/lib/resend";
 import { scheduleAIAutoReply } from "@/lib/ai-auto-reply";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-async function analyseComplaintWithAI(
-  title: string,
-  category: string,
-  description: string,
-): Promise<{
-  aiPriority: "Low" | "Medium" | "High" | "Critical";
-  aiExplanation: string;
-  aiScore: number;
-}> {
-  const prompt = `
-You are an expert student affairs officer at a university. Analyse the following student complaint and determine its priority level.
-
-Complaint Title: "${title}"
-Category: "${category}"
-Description: "${description}"
-
-Evaluate urgency based on:
-- Potential impact on student wellbeing, academic performance, or safety
-- Time-sensitivity of the issue
-- Severity and seriousness of the concern
-- Whether it affects one student or multiple
-
-Respond with ONLY a valid JSON object in this exact format (no markdown, no explanation outside JSON):
-{
-  "priority": "Low" | "Medium" | "High" | "Critical",
-  "score": <integer 0-100 representing urgency, 100 being most urgent>,
-  "explanation": "<2-3 sentences explaining why this priority was assigned and what factors were most important>"
-}
-`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-  });
-
-  const raw = response.text?.trim() ?? "";
-  // Strip markdown fences if present
-  const clean = raw.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
-
-  return {
-    aiPriority: parsed.priority,
-    aiExplanation: parsed.explanation,
-    aiScore: parsed.score,
-  };
-}
+import { analyseComplaintWithAI } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = (decoded as any).userId;
-    const user = await User.findById(userId);
-
-    if (!user || user.role !== "students") {
+    if (user.role !== "students") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { title, category, description } = body;
-
+    const { title, category, description } = await request.json();
     if (!title || !category || !description) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -90,47 +26,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run AI analysis
-    let aiData: {
-      aiPriority: "Low" | "Medium" | "High" | "Critical";
-      aiExplanation: string;
-      aiScore: number;
-    } | null = null;
-
+    let aiData = null;
     try {
       aiData = await analyseComplaintWithAI(title, category, description);
     } catch (aiError) {
       console.error("AI analysis failed, using default priority:", aiError);
     }
 
-    const newComplaint = new Complaint({
-      studentId: userId,
-      studentName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-      studentEmail: user.email,
-      title,
-      category,
-      description,
-      priority: aiData?.aiPriority ?? "Medium",
-      status: "Pending",
-      ...(aiData && {
-        aiPriority: aiData.aiPriority,
-        aiExplanation: aiData.aiExplanation,
-        aiScore: aiData.aiScore,
-        aiAnalysedAt: new Date(),
-      }),
-    });
+    const [newComplaint] = await db
+      .insert(complaints)
+      .values({
+        studentId: user.id,
+        studentName: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+        studentEmail: user.email,
+        title,
+        category,
+        description,
+        priority: aiData?.aiPriority ?? "Medium",
+        status: "Pending",
+        ...(aiData && {
+          aiPriority: aiData.aiPriority,
+          aiExplanation: aiData.aiExplanation,
+          aiScore: aiData.aiScore,
+          aiAnalysedAt: new Date(),
+        }),
+      })
+      .returning();
 
-    await newComplaint.save();
-
-    // Notify admins by email so they can respond promptly
-    const admins = await User.find({ role: "admin" }).select("email").lean();
-    const adminEmails = admins
-      .map((admin) => admin.email)
-      .filter((email): email is string => !!email);
+    // Notify admins by email
+    const admins = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.role, "admin"));
+    const adminEmails = admins.map((a) => a.email).filter(Boolean) as string[];
 
     sendNewComplaintNotificationToAdmins(
       {
-        _id: newComplaint._id.toString(),
+        _id: newComplaint.id,
         title: newComplaint.title,
         category: newComplaint.category,
         description: newComplaint.description,
@@ -142,16 +74,12 @@ export async function POST(request: NextRequest) {
       adminEmails,
     ).catch((err) => console.error("Admin notification email failed:", err));
 
-    // If no admin is currently online, schedule an AI assistant reply
     if (!isAdminOnline()) {
-      scheduleAIAutoReply(newComplaint._id.toString());
+      scheduleAIAutoReply(newComplaint.id);
     }
 
     return NextResponse.json(
-      {
-        complaint: newComplaint,
-        message: "Complaint submitted successfully",
-      },
+      { complaint: { ...newComplaint, _id: newComplaint.id }, message: "Complaint submitted successfully" },
       { status: 201 },
     );
   } catch (error) {
@@ -165,25 +93,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = (decoded as any).userId;
-    const user = await User.findById(userId);
-
+    const user = await getCurrentUser(request);
     if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -193,41 +105,61 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || "";
 
-    const filter: any = {};
+    const conditions = [];
 
     if (user.role === "students") {
-      filter.studentId = userId;
+      conditions.push(eq(complaints.studentId, user.id));
     } else if (user.role === "admin") {
       if (search) {
-        filter.$or = [
-          { title: { $regex: search, $options: "i" } },
-          { description: { $regex: search, $options: "i" } },
-          { studentName: { $regex: search, $options: "i" } },
-        ];
+        conditions.push(
+          or(
+            ilike(complaints.title, `%${search}%`),
+            ilike(complaints.description, `%${search}%`),
+            ilike(complaints.studentName, `%${search}%`),
+          ),
+        );
       }
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (status) filter.status = status;
-    if (category) filter.category = category;
+    if (status) conditions.push(eq(complaints.status, status));
+    if (category) conditions.push(eq(complaints.category, category));
 
-    const total = await Complaint.countDocuments(filter);
-    const complaints = await Complaint.find(filter)
-      .populate("studentId", "firstName lastName email studentId")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(complaints)
+      .where(whereClause);
+
+    const rows = await db
+      .select({
+        complaint: complaints,
+        student: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          studentId: users.studentId,
+        },
+      })
+      .from(complaints)
+      .leftJoin(users, eq(complaints.studentId, users.id))
+      .where(whereClause)
+      .orderBy(desc(complaints.createdAt))
       .limit(limit)
-      .lean();
+      .offset((page - 1) * limit);
+
+    const result = rows.map((r) => ({
+      ...r.complaint,
+      _id: r.complaint.id,
+      student: r.student,
+    }));
 
     return NextResponse.json({
-      complaints,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      complaints: result,
+      pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
     });
   } catch (error) {
     console.error("Error fetching complaints:", error);

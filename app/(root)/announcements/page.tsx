@@ -58,10 +58,10 @@ const categoryColors: Record<string, string> = {
 const categoryStyles: Record<string, string> = {
   General: "bg-blue-400/10 text-blue-400 border-blue-400/25",
   Academic: "bg-violet-400/10 text-violet-400 border-violet-400/25",
-  Events: "bg-emerald-400/10 text-emerald-400 border-emerald-400/25",
-  Emergency: "bg-red-400/10 text-red-400 border-red-400/25",
+  Events: "bg-cug-green/10 text-cug-green border-cug-green/25",
+  Emergency: "bg-red-400/10 text-destructive border-destructive/40/25",
   Welfare: "bg-amber-400/10 text-amber-400 border-amber-400/25",
-  Other: "bg-zinc-400/10 text-zinc-400 border-zinc-400/25",
+  Other: "bg-muted text-muted-foreground border-border/25",
 };
 
 const categoryEmoji: Record<string, string> = {
@@ -109,7 +109,7 @@ function DetailModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full max-h-[88vh] overflow-y-auto"
+        className="bg-card border border-border rounded-2xl max-w-xl w-full max-h-[88vh] overflow-y-auto"
       >
         {/* Header */}
         <div
@@ -130,10 +130,10 @@ function DetailModal({
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-bold text-white leading-snug">
+              <h2 className="text-xl font-bold text-foreground leading-snug">
                 {announcement.title}
               </h2>
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-zinc-500">
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <User className="w-3 h-3" />
                   {announcement.authorName}
@@ -153,7 +153,7 @@ function DetailModal({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all shrink-0"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -161,7 +161,7 @@ function DetailModal({
         </div>
 
         <div className="p-6">
-          <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
+          <p className="text-foreground text-sm leading-relaxed whitespace-pre-line">
             {announcement.content}
           </p>
         </div>
@@ -189,12 +189,12 @@ function AnnouncementCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
       onClick={onClick}
-      className={`relative group bg-zinc-900/70 border rounded-xl p-5 cursor-pointer transition-all hover:border-opacity-60 hover:bg-zinc-900 ${
+      className={`relative group bg-card/70 border rounded-xl p-5 cursor-pointer transition-all hover:border-opacity-60 hover:bg-card ${
         isEmergency
-          ? "border-red-500/30 hover:border-red-500/50"
+          ? "border-destructive/30 hover:border-destructive/40/50"
           : announcement.isPinned
             ? "border-amber-500/20 hover:border-amber-500/35"
-            : "border-zinc-800 hover:border-zinc-700"
+            : "border-border hover:border-border"
       }`}
     >
       {/* Left color bar */}
@@ -216,18 +216,18 @@ function AnnouncementCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-white font-semibold text-base leading-snug mb-2 group-hover:text-emerald-100 transition-colors">
+        <h3 className="text-foreground font-semibold text-base leading-snug mb-2 group-hover:text-cug-green transition-colors">
           {announcement.title}
         </h3>
 
         {/* Preview */}
-        <p className="text-zinc-500 text-sm leading-relaxed line-clamp-2 mb-3">
+        <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2 mb-3">
           {announcement.content}
         </p>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-zinc-600">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <User className="w-3 h-3" />
               {announcement.authorName}
@@ -241,7 +241,7 @@ function AnnouncementCard({
               })}
             </span>
           </div>
-          <span className="text-xs text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+          <span className="text-xs text-cug-green opacity-0 group-hover:opacity-100 transition-opacity font-medium">
             Read more →
           </span>
         </div>
@@ -329,22 +329,22 @@ export default function StudentsAnnouncementPage() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
       </div>
     );
   }
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-background">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/3 w-150 h-75 rounded-full bg-emerald-500/3 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-teal-500/3 blur-[100px]" />
+        <div className="absolute top-0 left-1/3 w-150 h-75 rounded-full bg-cug-green/3 blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-cug-green/3 blur-[100px]" />
       </div>
 
-      <main className="relative z-10 pt-24 pb-16 px-6">
+      <main className="relative z-10 pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-5xl">
           {/* Header */}
           <motion.div
@@ -353,22 +353,22 @@ export default function StudentsAnnouncementPage() {
             className="mb-8"
           >
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-0.5 bg-emerald-400" />
-              <span className="text-emerald-400 text-xs font-semibold tracking-[0.2em] uppercase">
+              <div className="w-6 h-0.5 bg-cug-green" />
+              <span className="text-cug-green text-xs font-semibold tracking-[0.2em] uppercase">
                 SWIS Platform
               </span>
             </div>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">
+                <h1 className="text-3xl font-bold text-foreground mb-1">
                   Announcements
                 </h1>
-                <p className="text-zinc-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                   {total} announcement{total !== 1 ? "s" : ""} from the student
                   affairs office
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium shrink-0">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cug-green/10 border border-cug-green/25 text-cug-green text-xs font-medium shrink-0">
                 <Bell className="w-3.5 h-3.5" />
                 Email alerts active
               </div>
@@ -382,7 +382,7 @@ export default function StudentsAnnouncementPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-red-500/10 border border-red-500/25 rounded-xl text-red-400 text-sm"
+                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-destructive/10 border border-destructive/25 rounded-xl text-destructive text-sm"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
@@ -395,17 +395,17 @@ export default function StudentsAnnouncementPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="mb-6 bg-zinc-900/70 border border-zinc-800 rounded-xl p-4"
+            className="mb-6 bg-card/70 border border-border rounded-xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Filter className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm font-semibold text-zinc-300">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">
                 Filter
               </span>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-600" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                 <input
                   placeholder="Search announcements…"
                   value={search}
@@ -413,7 +413,7 @@ export default function StudentsAnnouncementPage() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full pl-9 pr-4 h-9 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white placeholder:text-zinc-600 rounded-lg text-sm outline-none transition-all"
+                  className="w-full pl-9 pr-4 h-9 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground placeholder:text-muted-foreground rounded-lg text-sm outline-none transition-all"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
@@ -424,8 +424,8 @@ export default function StudentsAnnouncementPage() {
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                     categoryFilter === ""
-                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-                      : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:border-zinc-600"
+                      ? "bg-cug-green/15 border-cug-green/40 text-cug-green"
+                      : "bg-muted/60 border-border/60 text-muted-foreground hover:border-border"
                   }`}
                 >
                   All
@@ -439,8 +439,8 @@ export default function StudentsAnnouncementPage() {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                       categoryFilter === c
-                        ? `border-opacity-50 text-white`
-                        : "bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:border-zinc-600"
+                        ? `border-opacity-50 text-foreground`
+                        : "bg-muted/60 border-border/60 text-muted-foreground hover:border-border"
                     }`}
                     style={
                       categoryFilter === c
@@ -462,7 +462,7 @@ export default function StudentsAnnouncementPage() {
           {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center p-24">
-              <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+              <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
             </div>
           ) : announcements.length === 0 ? (
             <motion.div
@@ -470,15 +470,15 @@ export default function StudentsAnnouncementPage() {
               animate={{ opacity: 1 }}
               className="text-center py-24"
             >
-              <Megaphone className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-              <p className="text-zinc-500 text-sm">No announcements found</p>
+              <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No announcements found</p>
               {(search || categoryFilter) && (
                 <button
                   onClick={() => {
                     setSearch("");
                     setCategoryFilter("");
                   }}
-                  className="mt-3 text-emerald-400 text-sm hover:underline"
+                  className="mt-3 text-cug-green text-sm hover:underline"
                 >
                   Clear filters
                 </button>
@@ -513,8 +513,8 @@ export default function StudentsAnnouncementPage() {
                 <div>
                   {pinnedAnnouncements.length > 0 && (
                     <div className="flex items-center gap-2 mb-4">
-                      <Megaphone className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                      <Megaphone className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         All Announcements
                       </span>
                     </div>
@@ -537,21 +537,21 @@ export default function StudentsAnnouncementPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-8 px-1">
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

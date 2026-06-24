@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq, or, and } from "drizzle-orm";
+import bcryptjs from "bcryptjs";
 import { generateToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
+import { db } from "@/src/db";
+import { users, students } from "@/src/schema";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const body = await request.json();
     const {
       role,
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Student ID validation: must be UGR or UGW followed by digits, 13 characters total
+    // Student ID format: UGR or UGW followed by 10 digits (13 chars total)
     if (!/^(UGR|UGW)\d{10}$/i.test(studentId)) {
       return NextResponse.json(
         {
@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
         { error: "Invalid email address" },
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Password validation
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
@@ -64,14 +62,39 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedStudentId = studentId.toUpperCase();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { studentId: normalizedStudentId }],
-    });
+    // Verify the Student ID exists in the official student registry
+    const [registryMatch] = await db
+      .select()
+      .from(students)
+      .where(eq(students.studentId, normalizedStudentId))
+      .limit(1);
+
+    if (!registryMatch) {
+      return NextResponse.json(
+        {
+          error:
+            "This Student ID was not found in the university records. Please check your ID or contact the Students Affairs Office.",
+        },
+        { status: 404 },
+      );
+    }
+
+    // Check if an account already exists
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.email, normalizedEmail),
+          eq(users.studentId, normalizedStudentId),
+        ),
+      )
+      .limit(1);
 
     if (existingUser) {
-      if (existingUser.email === email) {
+      if (existingUser.email === normalizedEmail) {
         return NextResponse.json(
           { error: "Email already registered" },
           { status: 409 },
@@ -85,34 +108,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create new student user
-    const newUser = new User({
-      role: role === "admin" ? "admin" : "students",
-      email,
-      password,
-      firstName,
-      lastName,
-      studentId: studentId.toUpperCase(),
-      faculty,
-      level,
-      programme,
-    });
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
-    await newUser.save();
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        role: role === "admin" ? "admin" : "students",
+        email: normalizedEmail,
+        password: hashedPassword,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        studentId: normalizedStudentId,
+        faculty: faculty ?? registryMatch.faculty,
+        level: level ?? registryMatch.level,
+        programme: programme ?? registryMatch.programme,
+      })
+      .returning();
 
-    // Generate token
     const token = generateToken({
-      userId: newUser._id.toString(),
+      userId: newUser.id,
       email: newUser.email,
-      role: newUser.role,
+      role: newUser.role as "students" | "admin",
     });
 
-    // Return success response
     return NextResponse.json(
       {
         message: "Registration successful",
         user: {
-          id: newUser._id,
+          id: newUser.id,
           email: newUser.email,
           firstName: newUser.firstName,
           lastName: newUser.lastName,
@@ -120,6 +143,7 @@ export async function POST(request: NextRequest) {
           studentId: newUser.studentId,
           faculty: newUser.faculty,
           programme: newUser.programme,
+          level: newUser.level,
         },
         token,
       },

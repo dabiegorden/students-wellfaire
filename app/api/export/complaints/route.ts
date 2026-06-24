@@ -1,13 +1,13 @@
-import { connectDB } from "@/lib/db";
-import Complaint from "@/models/Complaint";
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq, desc } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const decoded = getAuth(request);
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -16,19 +16,19 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category") || "";
     const priority = searchParams.get("priority") || "";
 
-    // Build filter
-    const filter: any = {};
-    if (status) filter.status = status;
-    if (category) filter.category = category;
-    if (priority) filter.priority = priority;
+    const conditions = [];
+    if (status) conditions.push(eq(complaints.status, status));
+    if (category) conditions.push(eq(complaints.category, category));
+    if (priority) conditions.push(eq(complaints.priority, priority));
+    const whereClause = conditions.length ? and(...conditions) : undefined;
 
-    // Get filtered complaints
-    const complaints = await Complaint.find(filter)
-      .populate("studentId", "firstName lastName email studentId")
-      .sort({ createdAt: -1 });
+    const rows = await db
+      .select()
+      .from(complaints)
+      .where(whereClause)
+      .orderBy(desc(complaints.createdAt));
 
-    // Format data for Excel
-    const exportData = complaints.map((complaint: any) => ({
+    const exportData = rows.map((complaint) => ({
       "Student Name": complaint.studentName || "N/A",
       Email: complaint.studentEmail || "N/A",
       Title: complaint.title,
@@ -40,10 +40,7 @@ export async function GET(request: NextRequest) {
       "Admin Reply": complaint.adminReply || "Pending",
     }));
 
-    return NextResponse.json({
-      data: exportData,
-      count: exportData.length,
-    });
+    return NextResponse.json({ data: exportData, count: exportData.length });
   } catch (error) {
     console.error("Export error:", error);
     return NextResponse.json(

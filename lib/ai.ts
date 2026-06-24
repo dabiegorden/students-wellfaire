@@ -1,0 +1,153 @@
+import { GoogleGenAI } from "@google/genai";
+
+export const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// Primary model (free tier). Fallback is used automatically when the primary
+// is overloaded (503) / rate-limited (429) / unavailable.
+export const AI_MODEL = "gemini-3.5-flash";
+const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash"];
+
+export type AIPriority = "Low" | "Medium" | "High" | "Critical";
+
+export interface AIAnalysis {
+  aiPriority: AIPriority;
+  aiExplanation: string;
+  aiScore: number;
+}
+
+/**
+ * Generate text with the primary model, transparently falling back to
+ * alternative models if the primary errors (e.g. 503 high demand).
+ */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export async function generateText(prompt: string): Promise<string> {
+  const models = [AI_MODEL, ...FALLBACK_MODELS];
+  let lastErr: unknown;
+  for (const model of models) {
+    // Retry transient overloads (503) / rate limits (429) with backoff.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+        });
+        const text = response.text?.trim();
+        if (text) return text;
+      } catch (err) {
+        lastErr = err;
+        const status = (err as { status?: number })?.status;
+        const transient = status === 503 || status === 429;
+        console.error(
+          `AI model ${model} attempt ${attempt + 1} failed (status ${status}).`,
+        );
+        if (transient && attempt === 0) {
+          await sleep(900);
+          continue;
+        }
+        break;
+      }
+    }
+  }
+  throw lastErr ?? new Error("All AI models failed");
+}
+
+/**
+ * Analyse a complaint and assign a triage priority/score.
+ */
+export async function analyseComplaintWithAI(
+  title: string,
+  category: string,
+  description: string,
+): Promise<AIAnalysis> {
+  const prompt = `
+You are an expert student affairs officer at a university. Analyse the following student complaint and determine its priority level.
+
+Complaint Title: "${title}"
+Category: "${category}"
+Description: "${description}"
+
+Evaluate urgency based on:
+- Potential impact on student wellbeing, academic performance, or safety
+- Time-sensitivity of the issue
+- Severity and seriousness of the concern
+- Whether it affects one student or multiple
+
+Respond with ONLY a valid JSON object in this exact format (no markdown, no explanation outside JSON):
+{
+  "priority": "Low" | "Medium" | "High" | "Critical",
+  "score": <integer 0-100 representing urgency, 100 being most urgent>,
+  "explanation": "<2-3 sentences explaining why this priority was assigned and what factors were most important>"
+}
+`;
+
+  const raw = await generateText(prompt);
+  const clean = raw.replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(clean);
+
+  return {
+    aiPriority: parsed.priority,
+    aiExplanation: parsed.explanation,
+    aiScore: parsed.score,
+  };
+}
+
+/**
+ * Generate a professional reply to a complaint.
+ */
+export async function generateComplaintReply(complaint: {
+  title: string;
+  category: string;
+  description: string;
+  priority: string;
+  aiExplanation?: string | null;
+  automated?: boolean;
+}): Promise<string> {
+  const prompt = `
+You are a professional university student affairs officer responding to a student complaint. Write a thoughtful, empathetic, and professional reply.
+
+Complaint Details:
+Title: "${complaint.title}"
+Category: "${complaint.category}"
+Description: "${complaint.description}"
+Priority: "${complaint.priority}"
+${complaint.aiExplanation ? `AI Assessment: "${complaint.aiExplanation}"` : ""}
+
+Write a professional admin response (3-5 sentences) that:
+- Acknowledges the student's concern with empathy
+- Addresses the specific issue raised
+- Explains what steps will be taken or what the student should expect next
+- Maintains a supportive, professional tone appropriate for university administration
+- Offers reassurance where appropriate
+${complaint.automated ? "- Mentions that this is an initial automated response and a staff member will follow up if needed" : ""}
+
+Return ONLY the reply text, no preamble, no labels, no quotes.
+`;
+
+  return generateText(prompt);
+}
+
+/**
+ * Generate a complaint description from a title + category (student helper).
+ */
+export async function generateComplaintDescription(
+  title: string,
+  category: string,
+): Promise<string> {
+  const prompt = `
+You are helping a university student write a formal complaint. Based on the title and category below, write a clear, professional, and detailed complaint description in first person (from the student's perspective).
+
+Complaint Title: "${title}"
+Category: "${category}"
+
+Write a well-structured description (3-5 sentences) that:
+- Describes the problem clearly and professionally
+- Includes relevant context a student in this situation would mention
+- States what impact this is having on the student
+- Maintains a respectful, formal tone appropriate for a university complaint
+
+Return ONLY the description text, no preamble, no labels, no quotes.
+`;
+
+  return generateText(prompt);
+}

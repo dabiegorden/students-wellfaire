@@ -1,29 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Announcement from "@/models/Announcement";
-import User from "@/models/User";
+import { and, eq, or, ilike, desc, asc, sql } from "drizzle-orm";
+import { db } from "@/src/db";
+import { announcements, users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 import { Resend } from "resend";
 import { AnnouncementEmailTemplate } from "@/components/AnnouncementEmailTemplate";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ── GET /api/announcements ──────────────────────────────────────────────────
-// Accessible by both admin and students (must be authenticated)
+// GET /api/announcements — any authenticated user
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
+    const decoded = getAuth(request);
     if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -32,32 +22,34 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    const filter: any = {};
-    if (category) filter.category = category;
+    const conditions = [];
+    if (category) conditions.push(eq(announcements.category, category));
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { content: { $regex: search, $options: "i" } },
-      ];
+      conditions.push(
+        or(
+          ilike(announcements.title, `%${search}%`),
+          ilike(announcements.content, `%${search}%`),
+        ),
+      );
     }
+    const whereClause = conditions.length ? and(...conditions) : undefined;
 
-    const total = await Announcement.countDocuments(filter);
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(announcements)
+      .where(whereClause);
 
-    // Pinned announcements always come first, then by newest
-    const announcements = await Announcement.find(filter)
-      .sort({ isPinned: -1, createdAt: -1 })
-      .skip((page - 1) * limit)
+    const rows = await db
+      .select()
+      .from(announcements)
+      .where(whereClause)
+      .orderBy(desc(announcements.isPinned), desc(announcements.createdAt))
       .limit(limit)
-      .lean();
+      .offset((page - 1) * limit);
 
     return NextResponse.json({
-      announcements,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      announcements: rows.map((r) => ({ ...r, _id: r.id })),
+      pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
     });
   } catch (error) {
     console.error("Error fetching announcements:", error);
@@ -68,33 +60,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ── POST /api/announcements ─────────────────────────────────────────────────
-// Admin only — creates announcement and optionally emails all students
+// POST /api/announcements — admin only
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const userId = (decoded as any).userId;
-    const admin = await User.findById(userId);
+    const [admin] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
 
     if (!admin) {
       return NextResponse.json({ error: "Admin not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { title, category, content, isPinned, sendEmail } = body;
+    const { title, category, content, isPinned, sendEmail } =
+      await request.json();
 
     if (!title || !category || !content) {
       return NextResponse.json(
@@ -103,24 +88,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const announcement = new Announcement({
-      title,
-      category,
-      content,
-      isPinned: isPinned ?? false,
-      authorId: userId,
-      authorName: `${admin.firstName} ${admin.lastName}`,
-      emailSent: false,
-    });
+    const [announcement] = await db
+      .insert(announcements)
+      .values({
+        title,
+        category,
+        content,
+        isPinned: isPinned ?? false,
+        authorId: admin.id,
+        authorName: `${admin.firstName} ${admin.lastName}`,
+        emailSent: false,
+      })
+      .returning();
 
-    await announcement.save();
-
-    // Send email blast to all students if requested
     if (sendEmail) {
       try {
-        const students = await User.find({ role: "students" }).select(
-          "email firstName",
-        );
+        const studentList = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.role, "students"));
 
         const platformUrl =
           process.env.NEXT_PUBLIC_APP_URL ||
@@ -133,42 +119,41 @@ export async function POST(request: NextRequest) {
           year: "numeric",
         });
 
-        // Batch emails (Resend allows up to 100 per batch call)
         const BATCH_SIZE = 50;
         let emailsSent = 0;
 
-        for (let i = 0; i < students.length; i += BATCH_SIZE) {
-          const batch = students.slice(i, i + BATCH_SIZE);
-
-          const emailPromises = batch.map((student) =>
-            resend.emails.send({
-              from: `SWIS Platform <${process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"}>`,
-              to: [student.email],
-              subject: `📢 New Announcement: ${title}`,
-              react: AnnouncementEmailTemplate({
-                studentFirstName: student.firstName,
-                announcementTitle: title,
-                announcementCategory: category,
-                announcementContent: content,
-                authorName: `${admin.firstName} ${admin.lastName}`,
-                postedAt,
-                platformUrl,
+        for (let i = 0; i < studentList.length; i += BATCH_SIZE) {
+          const batch = studentList.slice(i, i + BATCH_SIZE);
+          await Promise.allSettled(
+            batch.map((student) =>
+              resend.emails.send({
+                from: `Students Wellfare <${process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"}>`,
+                to: [student.email],
+                subject: `New Announcement: ${title}`,
+                react: AnnouncementEmailTemplate({
+                  studentFirstName: student.firstName,
+                  announcementTitle: title,
+                  announcementCategory: category,
+                  announcementContent: content,
+                  authorName: `${admin.firstName} ${admin.lastName}`,
+                  postedAt,
+                  platformUrl,
+                }),
               }),
-            }),
+            ),
           );
-
-          await Promise.allSettled(emailPromises);
           emailsSent += batch.length;
         }
 
-        // Mark email as sent
-        announcement.emailSent = true;
-        announcement.emailSentAt = new Date();
-        await announcement.save();
+        const [updated] = await db
+          .update(announcements)
+          .set({ emailSent: true, emailSentAt: new Date() })
+          .where(eq(announcements.id, announcement.id))
+          .returning();
 
         return NextResponse.json(
           {
-            announcement,
+            announcement: { ...updated, _id: updated.id },
             message: `Announcement created and emailed to ${emailsSent} student(s)`,
             emailsSent,
           },
@@ -176,10 +161,9 @@ export async function POST(request: NextRequest) {
         );
       } catch (emailError) {
         console.error("Email blast failed:", emailError);
-        // Announcement was still created; just report the email failure
         return NextResponse.json(
           {
-            announcement,
+            announcement: { ...announcement, _id: announcement.id },
             message:
               "Announcement created, but email notification failed. Students can still view it on the platform.",
             emailError: true,
@@ -191,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        announcement,
+        announcement: { ...announcement, _id: announcement.id },
         message: "Announcement created successfully",
       },
       { status: 201 },

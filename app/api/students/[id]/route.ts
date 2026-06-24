@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/src/db";
+import { users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -9,29 +10,23 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const student = await User.findOne({ _id: id, role: "students" })
-      .select("-password")
-      .lean();
+    const [student] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.role, "students")))
+      .limit(1);
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ student });
+    const { password, ...safe } = student;
+    return NextResponse.json({ student: { ...safe, _id: safe.id } });
   } catch (error) {
     console.error("Error fetching student:", error);
     return NextResponse.json(
@@ -47,42 +42,35 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { firstName, lastName, faculty, level, programme, email } = body;
+    const { firstName, lastName, faculty, level, programme, email } =
+      await request.json();
 
-    const student = await User.findOneAndUpdate(
-      { _id: id, role: "students" },
-      {
+    const [student] = await db
+      .update(users)
+      .set({
         firstName,
         lastName,
-        email,
+        email: email?.toLowerCase().trim(),
         faculty,
         level,
         programme,
-      },
-      { new: true },
-    ).select("-password");
+        updatedAt: new Date(),
+      })
+      .where(and(eq(users.id, id), eq(users.role, "students")))
+      .returning();
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    const { password, ...safe } = student;
     return NextResponse.json({
-      student,
+      student: { ...safe, _id: safe.id },
       message: "Student updated successfully",
     });
   } catch (error) {
@@ -100,29 +88,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const student = await User.findOneAndDelete({ _id: id, role: "students" });
+    const [student] = await db
+      .delete(users)
+      .where(and(eq(users.id, id), eq(users.role, "students")))
+      .returning();
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    return NextResponse.json({
-      message: "Student deleted successfully",
-    });
+    return NextResponse.json({ message: "Student deleted successfully" });
   } catch (error) {
     console.error("Error deleting student:", error);
     return NextResponse.json(

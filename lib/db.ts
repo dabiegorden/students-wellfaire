@@ -1,50 +1,28 @@
-import mongoose, { type Mongoose } from "mongoose";
+import { db } from "@/src/db";
 
-const MONGODB_URL = process.env.MONGODB_URL as string;
+export { db };
+export * as schema from "@/src/schema";
 
-if (!MONGODB_URL) {
-  throw new Error(
-    "Please define the MONGODB_URL environment variable inside .env.local",
-  );
+/**
+ * Legacy no-op kept for backwards compatibility while routes are migrated
+ * from Mongoose to Drizzle. Neon/Drizzle needs no explicit connect step.
+ */
+export async function connectDB() {
+  return db;
 }
 
 /**
- * In Next.js (App Router), we cache the DB connection on the global object
- * to avoid creating new connections on every hot reload or route call.
+ * Adds a Mongo-style `_id` alias to a row (or array of rows) so any frontend
+ * code still reading `_id` keeps working alongside the new `id` field.
  */
-
-declare global {
-  var myMongoose:
-    | {
-        conn: Mongoose | null;
-        promise: Promise<Mongoose> | null;
-      }
-    | undefined;
-}
-
-let cached = global.myMongoose;
-
-if (!cached) {
-  cached = global.myMongoose = { conn: null, promise: null };
-}
-
-export async function connectDB(): Promise<Mongoose> {
-  if (cached!.conn) return cached!.conn;
-  if (cached!.promise) return cached!.promise;
-
-  const opts = { bufferCommands: false };
-
-  cached!.promise = mongoose
-    .connect(MONGODB_URL, opts)
-    .then((mongooseInstance) => mongooseInstance);
-
-  try {
-    cached!.conn = await cached!.promise;
-    console.log("MongoDB is connected");
-  } catch (err) {
-    cached!.promise = null;
-    throw err;
+export function serialize<T extends { id?: string }>(row: T): T & { _id?: string };
+export function serialize<T extends { id?: string }>(
+  rows: T[],
+): (T & { _id?: string })[];
+export function serialize(input: any): any {
+  if (Array.isArray(input)) return input.map((r) => serialize(r));
+  if (input && typeof input === "object" && "id" in input) {
+    return { ...input, _id: input.id };
   }
-
-  return cached!.conn;
+  return input;
 }

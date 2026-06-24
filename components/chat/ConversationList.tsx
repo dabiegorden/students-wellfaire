@@ -46,7 +46,7 @@ export function ConversationList({
 
   if (filtered.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-zinc-500">
+      <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">
         No conversations found.
       </div>
     );
@@ -66,31 +66,31 @@ export function ConversationList({
             key={conversation._id}
             onClick={() => onSelect(conversation)}
             className={cn(
-              "flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-zinc-800/50 hover:bg-zinc-800/50",
-              selectedId === conversation._id && "bg-zinc-800/80",
+              "flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-border hover:bg-muted",
+              selectedId === conversation._id && "bg-muted",
             )}
           >
             <div className="relative shrink-0">
-              <Avatar className="h-11 w-11 border-2 border-linear-to-br from-emerald-400 to-teal-600">
-                <AvatarFallback className="bg-linear-to-br from-emerald-400 to-teal-600 text-zinc-950 font-bold text-sm">
+              <Avatar className="h-11 w-11 border-2 border-linear-to-br from-cug-green to-cug-green-dark">
+                <AvatarFallback className="bg-linear-to-br from-cug-green to-cug-green-dark text-foreground font-bold text-sm">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <span
                 className={cn(
-                  "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-zinc-950",
-                  online ? "bg-emerald-400" : "bg-zinc-600",
+                  "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-border",
+                  online ? "bg-cug-green" : "bg-muted",
                 )}
               />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {student.firstName} {student.lastName}
                 </p>
                 {conversation.lastMessageAt && (
-                  <span className="shrink-0 text-[10px] text-zinc-500">
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
                     {formatDistanceToNow(new Date(conversation.lastMessageAt), {
                       addSuffix: true,
                     })}
@@ -98,12 +98,12 @@ export function ConversationList({
                 )}
               </div>
               <div className="flex items-center justify-between gap-2 mt-0.5">
-                <p className="truncate text-xs text-zinc-400">
+                <p className="truncate text-xs text-muted-foreground">
                   {conversation.lastMessageSender === "admin" && "You: "}
                   {conversation.lastMessage || "No messages yet"}
                 </p>
                 {conversation.adminUnreadCount > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-linear-to-r from-emerald-400 to-teal-500 px-1.5 text-[10px] font-bold text-zinc-950">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-linear-to-r from-cug-green to-cug-green-dark px-1.5 text-[10px] font-bold text-foreground">
                     {conversation.adminUnreadCount}
                   </span>
                 )}

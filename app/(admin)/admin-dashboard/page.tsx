@@ -53,7 +53,7 @@ interface Stats {
     status: string;
     priority: string;
     createdAt: string;
-    studentId: {
+    student: {
       firstName: string;
       lastName: string;
       studentId: string;
@@ -66,7 +66,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     Pending: "bg-yellow-400/10 text-yellow-400 border-yellow-400/30",
     "In Progress": "bg-blue-400/10 text-blue-400 border-blue-400/30",
     Resolved: "bg-green-400/10 text-green-400 border-green-400/30",
-    Closed: "bg-zinc-400/10 text-zinc-400 border-zinc-400/30",
+    Closed: "bg-muted text-muted-foreground border-border/30",
   };
 
   return (
@@ -83,7 +83,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     Low: "bg-blue-400/10 text-blue-400 border-blue-400/30",
     Medium: "bg-yellow-400/10 text-yellow-400 border-yellow-400/30",
     High: "bg-orange-400/10 text-orange-400 border-orange-400/30",
-    Critical: "bg-red-400/10 text-red-400 border-red-400/30",
+    Critical: "bg-red-400/10 text-destructive border-destructive/40/30",
   };
 
   return (
@@ -175,8 +175,8 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-cug-green" />
       </div>
     );
   }
@@ -187,13 +187,13 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-950 pt-24 pb-12 px-6">
+      <div className="min-h-screen bg-background pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 flex items-center gap-4">
-            <AlertCircle className="w-8 h-8 text-red-400 shrink-0" />
+          <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-8 flex items-center gap-4">
+            <AlertCircle className="w-8 h-8 text-destructive shrink-0" />
             <div>
-              <h2 className="text-xl font-bold text-red-400 mb-2">Error</h2>
-              <p className="text-red-300">{error}</p>
+              <h2 className="text-xl font-bold text-destructive mb-2">Error</h2>
+              <p className="text-destructive">{error}</p>
             </div>
           </div>
         </div>
@@ -202,8 +202,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <main className="pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-background">
+      <main className="pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
           {/* Header */}
           <motion.div
@@ -211,10 +211,10 @@ export default function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-4xl font-bold text-white mb-2">
+            <h1 className="text-4xl font-bold text-foreground mb-2">
               Welcome back, {user?.firstName}!
             </h1>
-            <p className="text-zinc-400">
+            <p className="text-muted-foreground">
               Here's what's happening with your system today
             </p>
           </motion.div>
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+              className="mb-6 flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive"
             >
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">{statsError}</span>
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
 
           {statsLoading ? (
             <div className="flex items-center justify-center p-12">
-              <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+              <Loader className="w-8 h-8 animate-spin text-cug-green" />
             </div>
           ) : stats ? (
             <div className="space-y-6">
@@ -242,18 +242,18 @@ export default function AdminDashboard() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-linear-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-xl p-6"
+                  className="bg-linear-to-br from-cug-green/10 to-emerald-600/5 border border-cug-green/20 rounded-xl p-6"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-emerald-500/10 rounded-lg">
-                      <Users className="w-6 h-6 text-emerald-400" />
+                    <div className="p-3 bg-cug-green/10 rounded-lg">
+                      <Users className="w-6 h-6 text-cug-green" />
                     </div>
-                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    <TrendingUp className="w-5 h-5 text-cug-green" />
                   </div>
-                  <h3 className="text-zinc-400 text-sm font-medium mb-1">
+                  <h3 className="text-muted-foreground text-sm font-medium mb-1">
                     Total Students
                   </h3>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-3xl font-bold text-foreground">
                     {stats.users.totalStudents}
                   </p>
                 </motion.div>
@@ -270,10 +270,10 @@ export default function AdminDashboard() {
                     </div>
                     <Activity className="w-5 h-5 text-blue-400" />
                   </div>
-                  <h3 className="text-zinc-400 text-sm font-medium mb-1">
+                  <h3 className="text-muted-foreground text-sm font-medium mb-1">
                     Total Complaints
                   </h3>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-3xl font-bold text-foreground">
                     {stats.complaints.total}
                   </p>
                 </motion.div>
@@ -290,10 +290,10 @@ export default function AdminDashboard() {
                     </div>
                     <AlertTriangle className="w-5 h-5 text-yellow-400" />
                   </div>
-                  <h3 className="text-zinc-400 text-sm font-medium mb-1">
+                  <h3 className="text-muted-foreground text-sm font-medium mb-1">
                     Pending
                   </h3>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-3xl font-bold text-foreground">
                     {stats.complaints.pending}
                   </p>
                 </motion.div>
@@ -312,10 +312,10 @@ export default function AdminDashboard() {
                       {stats.complaints.resolutionRate}%
                     </span>
                   </div>
-                  <h3 className="text-zinc-400 text-sm font-medium mb-1">
+                  <h3 className="text-muted-foreground text-sm font-medium mb-1">
                     Resolved
                   </h3>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-3xl font-bold text-foreground">
                     {stats.complaints.resolved}
                   </p>
                 </motion.div>
@@ -327,32 +327,32 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <BarChart3 className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <BarChart3 className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       Status Overview
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-400 text-sm">In Progress</span>
-                      <span className="text-white font-semibold">
+                      <span className="text-muted-foreground text-sm">In Progress</span>
+                      <span className="text-foreground font-semibold">
                         {stats.complaints.inProgress}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-400 text-sm">Closed</span>
-                      <span className="text-white font-semibold">
+                      <span className="text-muted-foreground text-sm">Closed</span>
+                      <span className="text-foreground font-semibold">
                         {stats.complaints.closed}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center pt-3 border-t border-zinc-800">
-                      <span className="text-zinc-400 text-sm">
+                    <div className="flex justify-between items-center pt-3 border-t border-border">
+                      <span className="text-muted-foreground text-sm">
                         Avg. Resolution
                       </span>
-                      <span className="text-emerald-400 font-semibold">
+                      <span className="text-cug-green font-semibold">
                         {stats.complaints.averageResolutionTime}h
                       </span>
                     </div>
@@ -363,11 +363,11 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <AlertTriangle className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       By Priority
                     </h3>
                   </div>
@@ -378,7 +378,7 @@ export default function AdminDashboard() {
                         className="flex justify-between items-center"
                       >
                         <PriorityBadge priority={item._id} />
-                        <span className="text-white font-semibold">
+                        <span className="text-foreground font-semibold">
                           {item.count}
                         </span>
                       </div>
@@ -390,11 +390,11 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <FileText className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <FileText className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       Top Categories
                     </h3>
                   </div>
@@ -404,10 +404,10 @@ export default function AdminDashboard() {
                         key={item._id}
                         className="flex justify-between items-center"
                       >
-                        <span className="text-zinc-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {item._id}
                         </span>
-                        <span className="text-white font-semibold">
+                        <span className="text-foreground font-semibold">
                           {item.count}
                         </span>
                       </div>
@@ -423,11 +423,11 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <Activity className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <Activity className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       Recent Complaints
                     </h3>
                   </div>
@@ -436,29 +436,29 @@ export default function AdminDashboard() {
                       stats.recentActivity.map((complaint) => (
                         <div
                           key={complaint._id}
-                          className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4 hover:bg-zinc-800 transition-colors cursor-pointer"
+                          className="bg-muted border border-border rounded-lg p-4 hover:bg-muted transition-colors cursor-pointer"
                           onClick={() =>
                             router.push(`/admin-dashboard/complaints`)
                           }
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-white font-medium text-sm line-clamp-1">
+                            <h4 className="text-foreground font-medium text-sm line-clamp-1">
                               {complaint?.title}
                             </h4>
                             <StatusBadge status={complaint?.status} />
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-zinc-400 text-xs">
-                              {complaint?.studentId?.firstName}{" "}
-                              {complaint?.studentId?.lastName} •{" "}
-                              {complaint?.studentId?.studentId}
+                            <p className="text-muted-foreground text-xs">
+                              {complaint?.student?.firstName}{" "}
+                              {complaint?.student?.lastName} •{" "}
+                              {complaint?.student?.studentId}
                             </p>
                             <PriorityBadge priority={complaint?.priority} />
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-zinc-500 text-center py-8">
+                      <p className="text-muted-foreground text-center py-8">
                         No recent complaints
                       </p>
                     )}
@@ -470,11 +470,11 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <Users className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <Users className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       Students by Faculty
                     </h3>
                   </div>
@@ -484,10 +484,10 @@ export default function AdminDashboard() {
                         key={item._id}
                         className="flex justify-between items-center"
                       >
-                        <span className="text-zinc-400 text-sm truncate max-w-xs">
+                        <span className="text-muted-foreground text-sm truncate max-w-xs">
                           {item._id?.split(":")[0] || "Unknown"}
                         </span>
-                        <span className="text-white font-semibold">
+                        <span className="text-foreground font-semibold">
                           {item.count}
                         </span>
                       </div>
@@ -502,11 +502,11 @@ export default function AdminDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 }}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                  className="bg-card border border-border rounded-xl p-6"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <BarChart3 className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-white">
+                    <BarChart3 className="w-5 h-5 text-cug-green" />
+                    <h3 className="text-lg font-semibold text-foreground">
                       Complaints by Faculty
                     </h3>
                   </div>
@@ -514,12 +514,12 @@ export default function AdminDashboard() {
                     {stats.complaints.byFaculty.map((item) => (
                       <div
                         key={item._id}
-                        className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4"
+                        className="bg-muted border border-border rounded-lg p-4"
                       >
-                        <p className="text-zinc-400 text-xs mb-2 truncate">
+                        <p className="text-muted-foreground text-xs mb-2 truncate">
                           {item._id?.split(":")[0] || "Unknown"}
                         </p>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-2xl font-bold text-foreground">
                           {item.count}
                         </p>
                       </div>

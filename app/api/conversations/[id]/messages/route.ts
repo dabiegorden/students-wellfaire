@@ -1,31 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Conversation from "@/models/Conversation";
-import Message from "@/models/Message";
+import { eq, desc, sql } from "drizzle-orm";
+import { db } from "@/src/db";
+import { conversations, messages } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
+    const { id } = await params;
+    const decoded = getAuth(request);
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id))
+      .limit(1);
 
-    const conversation = await Conversation.findById(id);
     if (!conversation) {
       return NextResponse.json(
         { error: "Conversation not found" },
@@ -33,10 +28,7 @@ export async function GET(
       );
     }
 
-    if (
-      decoded.role === "students" &&
-      conversation.student.toString() !== decoded.userId
-    ) {
+    if (decoded.role === "students" && conversation.student !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -44,21 +36,26 @@ export async function GET(
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "30");
 
-    const total = await Message.countDocuments({ conversation: id });
-    const messages = await Message.find({ conversation: id })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(eq(messages.conversation, id));
+
+    const rows = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversation, id))
+      .orderBy(desc(messages.createdAt))
       .limit(limit)
-      .lean();
+      .offset((page - 1) * limit);
+
+    const result = rows
+      .reverse()
+      .map((m) => ({ ...m, _id: m.id }));
 
     return NextResponse.json({
-      messages: messages.reverse(),
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      messages: result,
+      pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
     });
   } catch (error) {
     console.error("Error fetching messages:", error);

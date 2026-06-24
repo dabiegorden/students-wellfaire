@@ -1,9 +1,9 @@
 import type { Server as SocketIOServer, Socket } from "socket.io";
+import { eq, and, isNull } from "drizzle-orm";
 import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
-import Conversation from "@/models/Conversation";
-import Message from "@/models/Message";
+import { db } from "@/src/db";
+import { users, conversations, messages } from "@/src/schema";
+import { scheduleChatAutoReply } from "@/lib/chat-auto-reply";
 
 interface AuthedSocket extends Socket {
   data: {
@@ -12,9 +12,7 @@ interface AuthedSocket extends Socket {
   };
 }
 
-// Tracks userId -> set of connected socket ids (in-memory presence)
 const onlineUsers = new Map<string, Set<string>>();
-// Tracks online admin userIds (for student-facing "support online" indicator)
 const onlineAdmins = new Set<string>();
 
 const ADMIN_ROOM = "admins";
@@ -28,23 +26,15 @@ export function initSocket(io: SocketIOServer) {
     try {
       const token =
         (socket.handshake.auth?.token as string | undefined) ||
-        (socket.handshake.headers?.authorization || "").replace(
-          "Bearer ",
-          "",
-        );
+        (socket.handshake.headers?.authorization || "").replace("Bearer ", "");
 
-      if (!token) {
-        return next(new Error("Unauthorized"));
-      }
+      if (!token) return next(new Error("Unauthorized"));
 
       const decoded = verifyToken(token);
-      if (!decoded) {
-        return next(new Error("Unauthorized"));
-      }
+      if (!decoded) return next(new Error("Unauthorized"));
 
       (socket as AuthedSocket).data.userId = decoded.userId;
       (socket as AuthedSocket).data.role = decoded.role;
-
       next();
     } catch (err) {
       next(new Error("Unauthorized"));
@@ -55,32 +45,29 @@ export function initSocket(io: SocketIOServer) {
     const { userId, role } = (socket as AuthedSocket).data;
 
     socket.join(userRoom(userId));
-    if (role === "admin") {
-      socket.join(ADMIN_ROOM);
-    }
+    if (role === "admin") socket.join(ADMIN_ROOM);
 
-    // Mark user online
     const wasOffline = !onlineUsers.has(userId);
-    if (!onlineUsers.has(userId)) {
-      onlineUsers.set(userId, new Set());
-    }
+    if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
     onlineUsers.get(userId)!.add(socket.id);
 
-    if (wasOffline) {
-      io.emit("presence:update", { userId, online: true });
-    }
+    if (wasOffline) io.emit("presence:update", { userId, online: true });
 
     if (role === "admin") {
       const wasAdminOffline = onlineAdmins.size === 0;
       onlineAdmins.add(userId);
-      if (wasAdminOffline) {
-        io.emit("presence:admin-status", { online: true });
-      }
+      if (wasAdminOffline) io.emit("presence:admin-status", { online: true });
     }
 
-    // Send the requester the current online list
     socket.emit("presence:online-users", Array.from(onlineUsers.keys()));
     socket.emit("presence:admin-status", { online: onlineAdmins.size > 0 });
+
+    // Allow a client to re-request the current presence snapshot at any time
+    // (e.g. when opening the chat page) to avoid stale online indicators.
+    socket.on("presence:sync", () => {
+      socket.emit("presence:online-users", Array.from(onlineUsers.keys()));
+      socket.emit("presence:admin-status", { online: onlineAdmins.size > 0 });
+    });
 
     // ---- Send a message ----
     socket.on(
@@ -91,53 +78,68 @@ export function initSocket(io: SocketIOServer) {
       ) => {
         try {
           const content = (payload.content || "").trim();
-          if (!content) {
-            return ack?.({ error: "Message cannot be empty" });
-          }
-
-          await connectDB();
+          if (!content) return ack?.({ error: "Message cannot be empty" });
 
           let conversation;
 
           if (role === "students") {
-            conversation = await Conversation.findOne({ student: userId });
+            [conversation] = await db
+              .select()
+              .from(conversations)
+              .where(eq(conversations.student, userId))
+              .limit(1);
             if (!conversation) {
-              conversation = await Conversation.create({ student: userId });
+              [conversation] = await db
+                .insert(conversations)
+                .values({ student: userId })
+                .returning();
             }
           } else {
             if (!payload.conversationId) {
               return ack?.({ error: "conversationId is required" });
             }
-            conversation = await Conversation.findById(
-              payload.conversationId,
-            );
+            [conversation] = await db
+              .select()
+              .from(conversations)
+              .where(eq(conversations.id, payload.conversationId))
+              .limit(1);
             if (!conversation) {
               return ack?.({ error: "Conversation not found" });
             }
           }
 
-          const message = await Message.create({
-            conversation: conversation._id,
-            sender: userId,
-            senderRole: role,
-            content,
-          });
+          const [message] = await db
+            .insert(messages)
+            .values({
+              conversation: conversation.id,
+              sender: userId,
+              senderRole: role,
+              content,
+            })
+            .returning();
 
-          conversation.lastMessage = content;
-          conversation.lastMessageAt = new Date();
-          conversation.lastMessageSender = role;
-          if (role === "students") {
-            conversation.adminUnreadCount =
-              (conversation.adminUnreadCount || 0) + 1;
-          } else {
-            conversation.studentUnreadCount =
-              (conversation.studentUnreadCount || 0) + 1;
-          }
-          await conversation.save();
+          await db
+            .update(conversations)
+            .set({
+              lastMessage: content,
+              lastMessageAt: new Date(),
+              lastMessageSender: role,
+              studentUnreadCount:
+                role === "admin"
+                  ? (conversation.studentUnreadCount || 0) + 1
+                  : conversation.studentUnreadCount,
+              adminUnreadCount:
+                role === "students"
+                  ? (conversation.adminUnreadCount || 0) + 1
+                  : conversation.adminUnreadCount,
+              updatedAt: new Date(),
+            })
+            .where(eq(conversations.id, conversation.id));
 
           const messagePayload = {
-            _id: message._id.toString(),
-            conversation: conversation._id.toString(),
+            _id: message.id,
+            id: message.id,
+            conversation: conversation.id,
             sender: userId,
             senderRole: role,
             content,
@@ -145,15 +147,25 @@ export function initSocket(io: SocketIOServer) {
             readAt: null,
           };
 
-          // Notify the student
-          io.to(userRoom(conversation.student.toString())).emit(
+          io.to(userRoom(conversation.student)).emit(
             "message:new",
             messagePayload,
           );
-          // Notify all admins
           io.to(ADMIN_ROOM).emit("message:new", messagePayload);
 
           ack?.({ message: messagePayload });
+
+          // If a student messaged and no admin is online, the assistant
+          // replies on the admin's behalf after a short delay.
+          if (role === "students" && onlineAdmins.size === 0) {
+            scheduleChatAutoReply(
+              conversation.id,
+              io,
+              () => onlineAdmins.size > 0,
+              ADMIN_ROOM,
+              userRoom,
+            );
+          }
         } catch (err) {
           console.error("message:send error", err);
           ack?.({ error: "Failed to send message" });
@@ -166,14 +178,12 @@ export function initSocket(io: SocketIOServer) {
       "typing",
       (payload: { conversationId: string; isTyping: boolean }) => {
         if (!payload?.conversationId) return;
-
         socket.to(`conversation:${payload.conversationId}`).emit("typing", {
           conversationId: payload.conversationId,
           userId,
           role,
           isTyping: !!payload.isTyping,
         });
-
         if (role === "students") {
           io.to(ADMIN_ROOM).emit("typing", {
             conversationId: payload.conversationId,
@@ -185,7 +195,6 @@ export function initSocket(io: SocketIOServer) {
       },
     );
 
-    // Join a specific conversation room (used for typing indicators)
     socket.on("conversation:join", (conversationId: string) => {
       if (conversationId) socket.join(`conversation:${conversationId}`);
     });
@@ -195,49 +204,51 @@ export function initSocket(io: SocketIOServer) {
     });
 
     // ---- Mark messages as read ----
-    socket.on(
-      "message:read",
-      async (payload: { conversationId: string }) => {
-        try {
-          if (!payload?.conversationId) return;
-          await connectDB();
+    socket.on("message:read", async (payload: { conversationId: string }) => {
+      try {
+        if (!payload?.conversationId) return;
 
-          const conversation = await Conversation.findById(
-            payload.conversationId,
+        const [conversation] = await db
+          .select()
+          .from(conversations)
+          .where(eq(conversations.id, payload.conversationId))
+          .limit(1);
+        if (!conversation) return;
+
+        const otherRole = role === "students" ? "admin" : "students";
+
+        await db
+          .update(messages)
+          .set({ readAt: new Date() })
+          .where(
+            and(
+              eq(messages.conversation, conversation.id),
+              eq(messages.senderRole, otherRole),
+              isNull(messages.readAt),
+            ),
           );
-          if (!conversation) return;
 
-          const otherRole = role === "students" ? "admin" : "students";
+        await db
+          .update(conversations)
+          .set(
+            role === "students"
+              ? { studentUnreadCount: 0 }
+              : { adminUnreadCount: 0 },
+          )
+          .where(eq(conversations.id, conversation.id));
 
-          await Message.updateMany(
-            {
-              conversation: conversation._id,
-              senderRole: otherRole,
-              readAt: null,
-            },
-            { $set: { readAt: new Date() } },
-          );
-
-          if (role === "students") {
-            conversation.studentUnreadCount = 0;
-          } else {
-            conversation.adminUnreadCount = 0;
-          }
-          await conversation.save();
-
-          io.to(userRoom(conversation.student.toString())).emit(
-            "message:read",
-            { conversationId: conversation._id.toString(), reader: role },
-          );
-          io.to(ADMIN_ROOM).emit("message:read", {
-            conversationId: conversation._id.toString(),
-            reader: role,
-          });
-        } catch (err) {
-          console.error("message:read error", err);
-        }
-      },
-    );
+        io.to(userRoom(conversation.student)).emit("message:read", {
+          conversationId: conversation.id,
+          reader: role,
+        });
+        io.to(ADMIN_ROOM).emit("message:read", {
+          conversationId: conversation.id,
+          reader: role,
+        });
+      } catch (err) {
+        console.error("message:read error", err);
+      }
+    });
 
     // ---- Disconnect / presence ----
     socket.on("disconnect", async () => {
@@ -246,20 +257,17 @@ export function initSocket(io: SocketIOServer) {
         sockets.delete(socket.id);
         if (sockets.size === 0) {
           onlineUsers.delete(userId);
-
           const lastSeen = new Date();
           try {
-            await connectDB();
-            await User.findByIdAndUpdate(userId, { lastSeen });
+            await db
+              .update(users)
+              .set({ lastSeen })
+              .where(eq(users.id, userId));
           } catch (err) {
             console.error("Failed to update lastSeen", err);
           }
 
-          io.emit("presence:update", {
-            userId,
-            online: false,
-            lastSeen,
-          });
+          io.emit("presence:update", { userId, online: false, lastSeen });
 
           if (role === "admin") {
             onlineAdmins.delete(userId);

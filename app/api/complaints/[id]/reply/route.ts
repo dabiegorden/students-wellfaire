@@ -1,6 +1,8 @@
-import { connectDB } from "@/lib/db";
-import Complaint from "@/models/Complaint";
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 import { sendComplaintReplyNotificationToStudent } from "@/lib/resend";
 
 export async function PATCH(
@@ -8,17 +10,13 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await connectDB();
-
-    const { id } = await context.params; // ✅ NEW (important)
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const { id } = await context.params;
+    const decoded = getAuth(request);
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { adminReply, status } = await request.json();
-
     if (!adminReply && !status) {
       return NextResponse.json(
         { error: "Reply or status is required" },
@@ -26,23 +24,19 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = {};
-
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
     if (adminReply) {
       updateData.adminReply = adminReply;
       updateData.repliedAt = new Date();
       updateData.repliedBy = "admin";
     }
+    if (status) updateData.status = status;
 
-    if (status) {
-      updateData.status = status;
-    }
-
-    const complaint = await Complaint.findByIdAndUpdate(
-      id, // ✅ use id from awaited params
-      updateData,
-      { new: true },
-    ).populate("studentId", "firstName lastName email");
+    const [complaint] = await db
+      .update(complaints)
+      .set(updateData)
+      .where(eq(complaints.id, id))
+      .returning();
 
     if (!complaint) {
       return NextResponse.json(
@@ -52,24 +46,16 @@ export async function PATCH(
     }
 
     if (adminReply) {
-      const student = complaint.studentId as unknown as {
-        firstName?: string;
-        lastName?: string;
-        email?: string;
-      } | null;
-
       sendComplaintReplyNotificationToStudent(
         {
-          _id: complaint._id.toString(),
+          _id: complaint.id,
           title: complaint.title,
           category: complaint.category,
           description: complaint.description,
           priority: complaint.priority,
           status: complaint.status,
-          studentName:
-            complaint.studentName ||
-            `${student?.firstName || ""} ${student?.lastName || ""}`.trim(),
-          studentEmail: complaint.studentEmail || student?.email || "",
+          studentName: complaint.studentName,
+          studentEmail: complaint.studentEmail,
         },
         adminReply,
         "admin",
@@ -79,7 +65,7 @@ export async function PATCH(
     }
 
     return NextResponse.json({
-      complaint,
+      complaint: { ...complaint, _id: complaint.id },
       message: "Complaint updated successfully",
     });
   } catch (error) {

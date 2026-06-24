@@ -1,16 +1,15 @@
-import { connectDB } from "@/lib/db";
-import { generateToken } from "@/lib/jwt";
-import User from "@/models/User";
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import bcryptjs from "bcryptjs";
+import { generateToken } from "@/lib/jwt";
+import { db } from "@/src/db";
+import { users } from "@/src/schema";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const body = await request.json();
     const { email, password, role } = body;
 
-    // Validation
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
@@ -18,8 +17,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email
-    const user = await User.findOne({ email }).select("+password");
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .limit(1);
 
     if (!user) {
       return NextResponse.json(
@@ -28,19 +32,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check role if specified
     if (role && user.role !== role) {
       return NextResponse.json(
-        {
-          error: `This email is registered as a ${user.role}, not as ${role}`,
-        },
+        { error: `This email is registered as a ${user.role}, not as ${role}` },
         { status: 401 },
       );
     }
 
-    // Verify password
-    const isPasswordValid = await user.comparePassword(password);
-
+    const isPasswordValid = await bcryptjs.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -48,16 +47,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token
     const token = generateToken({
-      userId: user._id.toString(),
+      userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as "students" | "admin",
     });
 
-    // Prepare user response based on role
-    let userResponse: any = {
-      id: user._id,
+    let userResponse: Record<string, unknown> = {
+      id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -81,11 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        message: "Login successful",
-        user: userResponse,
-        token,
-      },
+      { message: "Login successful", user: userResponse, token },
       { status: 200 },
     );
   } catch (error) {

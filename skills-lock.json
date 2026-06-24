@@ -13,6 +13,12 @@
       "skillPath": "skills/email-best-practices/SKILL.md",
       "computedHash": "cf53e0d7ad72c440818c64a104ab220f527f26f10c7d8163fa99e066bf747eed"
     },
+    "neon-postgres": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres/SKILL.md",
+      "computedHash": "1d98334b789169895bd6147d5ddf362dc7aae4d761b07a60fffd0cbf1ca1510a"
+    },
     "react-email": {
       "source": "resend/resend-skills",
       "sourceType": "github",

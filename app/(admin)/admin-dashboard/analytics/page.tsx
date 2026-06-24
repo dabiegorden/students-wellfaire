@@ -143,8 +143,8 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-cug-green" />
       </div>
     );
   }
@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
         {
           label: "Resolution Rate",
           value: `${analyticsData.summary.resolutionRate}%`,
-          color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+          color: "bg-cug-green/10 border-cug-green/30 text-cug-green",
         },
         {
           label: "Total Students",
@@ -189,8 +189,8 @@ export default function AnalyticsPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <main className="pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-background">
+      <main className="pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
           {/* Header */}
           <motion.div
@@ -199,19 +199,19 @@ export default function AnalyticsPage() {
             className="mb-8 flex justify-between items-start"
           >
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Analytics & Insights
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Analytics and Insights
               </h1>
-              <p className="text-zinc-400">
+              <p className="text-muted-foreground">
                 Comprehensive dashboard of complaints and student welfare
                 metrics
               </p>
             </div>
             <Select value={days} onValueChange={setDays}>
-              <SelectTrigger className="w-40 h-10 bg-zinc-800/50 border-zinc-700/50 focus:border-emerald-500/50 text-white rounded-lg">
+              <SelectTrigger className="w-40 h-10 bg-muted border-border focus:border-cug-green/50 text-foreground rounded-lg">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+              <SelectContent className="bg-card border-border text-foreground">
                 <SelectItem value="7">Last 7 Days</SelectItem>
                 <SelectItem value="30">Last 30 Days</SelectItem>
                 <SelectItem value="90">Last 90 Days</SelectItem>
@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+              className="mb-6 flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive"
             >
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">{error}</span>
@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
 
           {loading ? (
             <div className="flex items-center justify-center p-12">
-              <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+              <Loader className="w-8 h-8 animate-spin text-cug-green" />
             </div>
           ) : analyticsData ? (
             <>
@@ -267,8 +267,8 @@ export default function AnalyticsPage() {
                 className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
               >
                 {/* Category Distribution */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                  <h2 className="text-lg font-semibold text-white mb-4">
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">
                     Complaints by Category
                   </h2>
                   <ResponsiveContainer width="100%" height={300}>
@@ -296,8 +296,8 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Priority Distribution */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                  <h2 className="text-lg font-semibold text-white mb-4">
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">
                     Complaints by Priority
                   </h2>
                   <ResponsiveContainer width="100%" height={300}>
@@ -319,8 +319,8 @@ export default function AnalyticsPage() {
                 className="grid grid-cols-1 gap-6"
               >
                 {/* Faculty Distribution */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                  <h2 className="text-lg font-semibold text-white mb-4">
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">
                     Complaints by Faculty
                   </h2>
                   <ResponsiveContainer width="100%" height={300}>
@@ -349,23 +349,23 @@ export default function AnalyticsPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-6 bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+                className="mt-6 bg-card border border-border rounded-xl p-6"
               >
-                <h2 className="text-lg font-semibold text-white mb-6">
+                <h2 className="text-lg font-semibold text-foreground mb-6">
                   Summary
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-zinc-400 text-sm mb-2">
+                    <p className="text-muted-foreground text-sm mb-2">
                       Closed Complaints
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-foreground">
                       {analyticsData.summary.closedComplaints}
                     </p>
                   </div>
                   <div>
-                    <p className="text-zinc-400 text-sm mb-2">Total Students</p>
-                    <p className="text-2xl font-bold text-emerald-400">
+                    <p className="text-muted-foreground text-sm mb-2">Total Students</p>
+                    <p className="text-2xl font-bold text-cug-green">
                       {analyticsData.summary.totalStudents}
                     </p>
                   </div>

@@ -28,19 +28,19 @@ export default function MessagesPage() {
 
   if (isLoading || !checked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="relative h-10 w-10 animate-spin rounded-full border-4 border-zinc-800 border-t-emerald-400" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="relative h-10 w-10 animate-spin rounded-full border-4 border-border border-t-cug-green" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 pt-28 pb-12 px-4 sm:px-6 lg:px-12">
+    <div className="min-h-screen bg-background pt-6 pb-12 px-4 sm:px-6 lg:px-12">
       <div className="mx-auto max-w-5xl space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Messages</h1>
-          <p className="text-sm text-zinc-400">
-            Chat with the Student Wellfaire support team in real time.
+          <h1 className="text-2xl font-bold text-foreground">Messages</h1>
+          <p className="text-sm text-muted-foreground">
+            Chat with the Student Wellfare support team in real time.
           </p>
         </div>
         <ChatInterface />

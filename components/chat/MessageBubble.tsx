@@ -27,8 +27,8 @@ export function MessageBubble({
         className={cn(
           "max-w-[75%] rounded-2xl px-4 py-2 shadow-md",
           isOwn
-            ? "bg-linear-to-br from-emerald-400 to-teal-600 text-zinc-950 rounded-br-sm"
-            : "bg-zinc-800 text-zinc-100 rounded-bl-sm",
+            ? "bg-linear-to-br from-cug-green to-cug-green-dark text-white rounded-br-sm"
+            : "bg-muted text-foreground rounded-bl-sm",
         )}
       >
         <p className="text-sm whitespace-pre-wrap break-words">
@@ -37,7 +37,7 @@ export function MessageBubble({
         <div
           className={cn(
             "mt-1 flex items-center gap-1 text-[10px]",
-            isOwn ? "text-zinc-900/70 justify-end" : "text-zinc-400",
+            isOwn ? "text-white/70 justify-end" : "text-muted-foreground",
           )}
         >
           <span>{format(new Date(message.createdAt), "HH:mm")}</span>

@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/context/user-context";
 import { SocketProvider } from "@/context/socket-context";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/context/language-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,9 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Students Wellfaire",
+  title: "CUG Students Wellfare",
   description:
-    "A platform for students to share their experiences and resources related to well-being and mental health.",
+    "Catholic University of Ghana Students Wellfare Information System — submit complaints, get support, and stay informed.",
 };
 
 export default function RootLayout({
@@ -29,15 +31,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UserProvider>
-          <SocketProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </SocketProvider>
-        </UserProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LanguageProvider>
+            <UserProvider>
+              <SocketProvider>
+                <TooltipProvider>{children}</TooltipProvider>
+              </SocketProvider>
+            </UserProvider>
+          </LanguageProvider>
+        </ThemeProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>

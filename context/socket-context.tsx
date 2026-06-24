@@ -55,6 +55,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.error("Socket connection error:", err.message);
     });
 
+    // Re-request presence on every (re)connect so indicators are never stale.
+    newSocket.on("connect", () => {
+      newSocket.emit("presence:sync");
+    });
+
     newSocket.on("presence:online-users", (userIds: string[]) => {
       setOnlineUserIds(new Set(userIds));
     });

@@ -39,7 +39,7 @@ interface Complaint extends AIAnalysis {
   category: string;
   priority: string;
   status: string;
-  studentId: {
+  student: {
     firstName: string;
     lastName: string;
     email: string;
@@ -115,15 +115,15 @@ function ScoreArc({ score }: { score: number }) {
 const statusStyles: Record<string, string> = {
   Pending: "bg-yellow-400/10 text-yellow-400 border-yellow-400/25",
   "In Progress": "bg-blue-400/10 text-blue-400 border-blue-400/25",
-  Resolved: "bg-emerald-400/10 text-emerald-400 border-emerald-400/25",
-  Closed: "bg-zinc-400/10 text-zinc-400 border-zinc-400/25",
+  Resolved: "bg-cug-green/10 text-cug-green border-cug-green/25",
+  Closed: "bg-muted text-muted-foreground border-border/25",
 };
 
 const priorityStyles: Record<string, string> = {
-  Low: "bg-emerald-400/10 text-emerald-400 border-emerald-400/25",
+  Low: "bg-cug-green/10 text-cug-green border-cug-green/25",
   Medium: "bg-yellow-400/10 text-yellow-400 border-yellow-400/25",
   High: "bg-orange-400/10 text-orange-400 border-orange-400/25",
-  Critical: "bg-red-400/10 text-red-400 border-red-400/25",
+  Critical: "bg-red-400/10 text-destructive border-destructive/40/25",
 };
 
 function Badge({
@@ -137,7 +137,7 @@ function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold rounded-full border ${styles[label] ?? "bg-zinc-400/10 text-zinc-400 border-zinc-400/25"}`}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold rounded-full border ${styles[label] ?? "bg-muted text-muted-foreground border-border/25"}`}
     >
       {prefix && <span className="opacity-60">{prefix}</span>}
       {label}
@@ -159,16 +159,16 @@ function AIPanel({
   const hasAI = complaint.aiPriority !== undefined;
 
   return (
-    <div className="rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="rounded-xl border border-border overflow-hidden">
       <div
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-zinc-900 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <Bot className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-semibold text-white">AI Analysis</span>
+          <Bot className="w-4 h-4 text-cug-green" />
+          <span className="text-sm font-semibold text-foreground">AI Analysis</span>
           {hasAI && (
-            <span className="text-[10px] text-zinc-500">
+            <span className="text-[10px] text-muted-foreground">
               · {new Date(complaint.aiAnalysedAt!).toLocaleDateString()}
             </span>
           )}
@@ -182,7 +182,7 @@ function AIPanel({
               onReanalyse();
             }}
             disabled={isReanalysing}
-            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-cug-green/10 border border-cug-green/25 text-cug-green hover:bg-cug-green/20 transition-all disabled:opacity-50"
           >
             <RefreshCw
               className={`w-3 h-3 ${isReanalysing ? "animate-spin" : ""}`}
@@ -191,7 +191,7 @@ function AIPanel({
           </button>
 
           <ChevronDown
-            className={`w-4 h-4 text-zinc-500 transition-transform ${
+            className={`w-4 h-4 text-muted-foreground transition-transform ${
               open ? "rotate-180" : ""
             }`}
           />
@@ -206,9 +206,9 @@ function AIPanel({
             exit={{ height: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-4 bg-zinc-950/60 border-t border-zinc-800">
+            <div className="px-4 py-4 bg-background/60 border-t border-border">
               {!hasAI ? (
-                <div className="flex items-center gap-2 text-zinc-500 text-sm py-2">
+                <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
                   <Info className="w-4 h-4" />
                   No AI analysis yet. Click Re-analyse to run it.
                 </div>
@@ -217,7 +217,7 @@ function AIPanel({
                   {/* Score */}
                   <div className="flex flex-col items-center gap-1">
                     <ScoreArc score={complaint.aiScore!} />
-                    <span className="text-[10px] text-zinc-500 font-medium">
+                    <span className="text-[10px] text-muted-foreground font-medium">
                       Urgency Score
                     </span>
                   </div>
@@ -225,7 +225,7 @@ function AIPanel({
                   {/* Priority + Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
                         AI-Assigned Priority
                       </p>
                       <Badge
@@ -236,10 +236,10 @@ function AIPanel({
                     </div>
 
                     <div>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
                         Reasoning
                       </p>
-                      <p className="text-sm text-zinc-300 leading-relaxed">
+                      <p className="text-sm text-foreground leading-relaxed">
                         {complaint.aiExplanation}
                       </p>
                     </div>
@@ -483,21 +483,21 @@ export default function AdminComplaintsPage() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
       </div>
     );
   }
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-background">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-150 h-75 rounded-full bg-emerald-500/3 blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-75 rounded-full bg-cug-green/3 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 pt-24 pb-16 px-6">
+      <main className="relative z-10 pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
           {/* Header */}
           <motion.div
@@ -508,20 +508,20 @@ export default function AdminComplaintsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-0.5 bg-emerald-400" />
-                  <span className="text-emerald-400 text-xs font-semibold tracking-[0.2em] uppercase">
+                  <div className="w-6 h-0.5 bg-cug-green" />
+                  <span className="text-cug-green text-xs font-semibold tracking-[0.2em] uppercase">
                     Admin Dashboard
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-1">
+                <h1 className="text-3xl font-bold text-foreground mb-1">
                   Complaints
                 </h1>
-                <p className="text-zinc-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                   {total} total complaint{total !== 1 ? "s" : ""} · AI priority
                   assessment enabled
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cug-green/10 border border-cug-green/25 text-cug-green text-xs font-medium">
                 <Bot className="w-3.5 h-3.5" />
                 AI Active
               </div>
@@ -535,7 +535,7 @@ export default function AdminComplaintsPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-red-500/10 border border-red-500/25 rounded-xl text-red-400 text-sm"
+                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-destructive/10 border border-destructive/25 rounded-xl text-destructive text-sm"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
@@ -546,7 +546,7 @@ export default function AdminComplaintsPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-sm"
+                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-cug-green/10 border border-cug-green/25 rounded-xl text-cug-green text-sm"
               >
                 <Sparkles className="w-4 h-4 shrink-0" />
                 {success}
@@ -559,17 +559,17 @@ export default function AdminComplaintsPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="mb-5 bg-zinc-900/70 border border-zinc-800 rounded-xl p-4"
+            className="mb-5 bg-card/70 border border-border rounded-xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Filter className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm font-semibold text-zinc-300">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">
                 Filters
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-600" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                 <input
                   placeholder="Search complaints…"
                   value={search}
@@ -577,7 +577,7 @@ export default function AdminComplaintsPage() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full pl-9 pr-4 h-9 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white placeholder:text-zinc-600 rounded-lg text-sm outline-none transition-all"
+                  className="w-full pl-9 pr-4 h-9 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground placeholder:text-muted-foreground rounded-lg text-sm outline-none transition-all"
                 />
               </div>
 
@@ -587,7 +587,7 @@ export default function AdminComplaintsPage() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-9 px-3 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
+                className="h-9 px-3 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
               >
                 <option value="">All Statuses</option>
                 {statuses.map((s) => (
@@ -603,7 +603,7 @@ export default function AdminComplaintsPage() {
                   setCategoryFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-9 px-3 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
+                className="h-9 px-3 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
               >
                 <option value="">All Categories</option>
                 {categories.map((c) => (
@@ -620,20 +620,20 @@ export default function AdminComplaintsPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-zinc-900/70 border border-zinc-800 rounded-xl overflow-hidden"
+            className="bg-card/70 border border-border rounded-xl overflow-hidden"
           >
             {loading ? (
               <div className="flex items-center justify-center p-16">
-                <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+                <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
               </div>
             ) : complaints.length === 0 ? (
-              <div className="text-center p-16 text-zinc-500 text-sm">
+              <div className="text-center p-16 text-muted-foreground text-sm">
                 No complaints found
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-zinc-800/60 border-b border-zinc-700/60">
+                  <thead className="bg-muted/60 border-b border-border/60">
                     <tr>
                       {[
                         "Title",
@@ -647,41 +647,41 @@ export default function AdminComplaintsPage() {
                       ].map((h) => (
                         <th
                           key={h}
-                          className="px-5 py-3.5 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                         >
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800/60">
+                  <tbody className="divide-y divide-border/60">
                     {complaints.map((complaint) => (
                       <tr
                         key={complaint._id}
-                        className="hover:bg-zinc-800/30 transition-colors group"
+                        className="hover:bg-muted transition-colors group"
                       >
                         <td className="px-5 py-4 max-w-50">
-                          <p className="text-white text-sm font-medium truncate">
+                          <p className="text-foreground text-sm font-medium truncate">
                             {complaint.title}
                           </p>
                           {complaint.adminReply && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400/70 mt-0.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] text-cug-green/70 mt-0.5">
                               <MessageSquare className="w-2.5 h-2.5" />
                               Replied
                             </span>
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-zinc-300 text-sm">
-                            {complaint.studentId?.firstName}{" "}
-                            {complaint.studentId?.lastName}
+                          <p className="text-foreground text-sm">
+                            {complaint.student?.firstName}{" "}
+                            {complaint.student?.lastName}
                           </p>
-                          <p className="text-zinc-600 text-xs truncate max-w-35">
-                            {complaint.studentId?.email}
+                          <p className="text-muted-foreground text-xs truncate max-w-35">
+                            {complaint.student?.email}
                           </p>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="text-zinc-400 text-sm">
+                          <span className="text-muted-foreground text-sm">
                             {complaint.category}
                           </span>
                         </td>
@@ -704,7 +704,7 @@ export default function AdminComplaintsPage() {
                         <td className="px-5 py-4">
                           {complaint.aiScore !== undefined ? (
                             <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                              <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all"
                                   style={{
@@ -720,12 +720,12 @@ export default function AdminComplaintsPage() {
                                   }}
                                 />
                               </div>
-                              <span className="text-xs text-zinc-400">
+                              <span className="text-xs text-muted-foreground">
                                 {complaint.aiScore}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-zinc-700 text-xs">—</span>
+                            <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
@@ -735,7 +735,7 @@ export default function AdminComplaintsPage() {
                           />
                         </td>
                         <td className="px-5 py-4">
-                          <span className="text-zinc-500 text-xs">
+                          <span className="text-muted-foreground text-xs">
                             {new Date(complaint.createdAt).toLocaleDateString(
                               "en-GB",
                               {
@@ -750,13 +750,13 @@ export default function AdminComplaintsPage() {
                           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleView(complaint)}
-                              className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                              className="p-1.5 rounded-lg bg-cug-green/10 border border-cug-green/25 text-cug-green hover:bg-cug-green/20 transition-all"
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDelete(complaint._id)}
-                              className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 transition-all"
+                              className="p-1.5 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive hover:bg-red-500/20 transition-all"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -771,22 +771,22 @@ export default function AdminComplaintsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-zinc-800/60 bg-zinc-900/40">
-                <span className="text-xs text-zinc-500">
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/60 bg-card/40">
+                <span className="text-xs text-muted-foreground">
                   Page {page} of {totalPages}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
-                    className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -812,7 +812,7 @@ export default function AdminComplaintsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto relative"
+              className="bg-card border border-border rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto relative"
             >
               {/* Success Overlay */}
               <AnimatePresence>
@@ -821,7 +821,7 @@ export default function AdminComplaintsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-zinc-900/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"
+                    className="absolute inset-0 bg-card/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"
                   >
                     <motion.div
                       initial={{ scale: 0.8, opacity: 0 }}
@@ -829,10 +829,10 @@ export default function AdminComplaintsPage() {
                       transition={{ type: "spring", duration: 0.5 }}
                       className="flex flex-col items-center gap-3"
                     >
-                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
-                        <Check className="w-8 h-8 text-emerald-400" />
+                      <div className="w-16 h-16 rounded-full bg-cug-green/20 border-2 border-cug-green/40 flex items-center justify-center">
+                        <Check className="w-8 h-8 text-cug-green" />
                       </div>
-                      <p className="text-white font-semibold text-lg">
+                      <p className="text-foreground font-semibold text-lg">
                         Changes Saved!
                       </p>
                     </motion.div>
@@ -841,10 +841,10 @@ export default function AdminComplaintsPage() {
               </AnimatePresence>
 
               {/* Modal Header */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-zinc-900 border-b border-zinc-800">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-card border-b border-border">
                 <div className="flex items-center gap-3">
                   <div>
-                    <h2 className="text-base font-semibold text-white leading-tight">
+                    <h2 className="text-base font-semibold text-foreground leading-tight">
                       {selectedComplaint.title}
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
@@ -861,7 +861,7 @@ export default function AdminComplaintsPage() {
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -871,21 +871,21 @@ export default function AdminComplaintsPage() {
                 {/* Student info */}
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <p className="text-xs text-zinc-500 mb-1">Student</p>
-                    <p className="text-white font-medium">
-                      {selectedComplaint.studentId?.firstName}{" "}
-                      {selectedComplaint.studentId?.lastName}
+                    <p className="text-xs text-muted-foreground mb-1">Student</p>
+                    <p className="text-foreground font-medium">
+                      {selectedComplaint.student?.firstName}{" "}
+                      {selectedComplaint.student?.lastName}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 mb-1">Category</p>
-                    <p className="text-zinc-300">
+                    <p className="text-xs text-muted-foreground mb-1">Category</p>
+                    <p className="text-foreground">
                       {selectedComplaint.category}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500 mb-1">Submitted</p>
-                    <p className="text-zinc-300">
+                    <p className="text-xs text-muted-foreground mb-1">Submitted</p>
+                    <p className="text-foreground">
                       {new Date(selectedComplaint.createdAt).toLocaleDateString(
                         "en-GB",
                         {
@@ -900,8 +900,8 @@ export default function AdminComplaintsPage() {
 
                 {/* Description */}
                 <div>
-                  <p className="text-xs text-zinc-500 mb-2">Description</p>
-                  <p className="text-zinc-300 text-sm leading-relaxed bg-zinc-950/50 rounded-xl px-4 py-3 border border-zinc-800">
+                  <p className="text-xs text-muted-foreground mb-2">Description</p>
+                  <p className="text-foreground text-sm leading-relaxed bg-background/50 rounded-xl px-4 py-3 border border-border">
                     {selectedComplaint.description}
                   </p>
                 </div>
@@ -916,11 +916,11 @@ export default function AdminComplaintsPage() {
                 {/* Previous reply */}
                 {selectedComplaint.adminReply && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-2 flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
                       <MessageSquare className="w-3 h-3" />
                       Previous Reply
                     </p>
-                    <p className="text-zinc-300 text-sm leading-relaxed bg-emerald-500/5 rounded-xl px-4 py-3 border border-emerald-500/15">
+                    <p className="text-white text-sm leading-relaxed bg-cug-green/5 rounded-xl px-4 py-3 border border-cug-green/15">
                       {selectedComplaint.adminReply}
                     </p>
                   </div>
@@ -930,14 +930,14 @@ export default function AdminComplaintsPage() {
                 <form onSubmit={handleUpdate} className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs text-zinc-400 font-medium">
+                      <label className="text-xs text-muted-foreground font-medium">
                         Admin Reply
                       </label>
                       <button
                         type="button"
                         onClick={handleGenerateReply}
                         disabled={isGeneratingReply}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-cug-green/10 border-cug-green/30 text-cug-green hover:bg-cug-green/20 hover:border-cug-green/50"
                       >
                         {isGeneratingReply ? (
                           <>
@@ -964,7 +964,7 @@ export default function AdminComplaintsPage() {
                         }
                         rows={4}
                         placeholder="Write your response to the student…"
-                        className="w-full px-4 py-3 bg-zinc-950/70 border border-zinc-800 hover:border-zinc-700 focus:border-emerald-500/50 rounded-xl text-white placeholder:text-zinc-600 outline-none text-sm resize-none transition-all"
+                        className="w-full px-4 py-3 bg-background/70 border border-border hover:border-border focus:border-cug-green/50 rounded-xl text-foreground placeholder:text-muted-foreground outline-none text-sm resize-none transition-all"
                       />
                       <AnimatePresence>
                         {aiReplyUsed && (
@@ -972,7 +972,7 @@ export default function AdminComplaintsPage() {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] text-emerald-400/70 bg-emerald-400/5 border border-emerald-400/20 rounded-md px-2 py-1"
+                            className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] text-cug-green/70 bg-cug-green/5 border border-cug-green/20 rounded-md px-2 py-1"
                           >
                             <Sparkles className="w-2.5 h-2.5" />
                             AI-drafted · edit freely
@@ -983,7 +983,7 @@ export default function AdminComplaintsPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-zinc-400 font-medium mb-1.5 block">
+                    <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                       Update Status
                     </label>
                     <select
@@ -991,7 +991,7 @@ export default function AdminComplaintsPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
-                      className="w-full px-4 py-2.5 bg-zinc-950/70 border border-zinc-800 hover:border-zinc-700 focus:border-emerald-500/50 text-white rounded-xl text-sm outline-none appearance-none cursor-pointer transition-all"
+                      className="w-full px-4 py-2.5 bg-background/70 border border-border hover:border-border focus:border-cug-green/50 text-foreground rounded-xl text-sm outline-none appearance-none cursor-pointer transition-all"
                     >
                       {statuses.map((s) => (
                         <option key={s} value={s}>
@@ -1005,7 +1005,7 @@ export default function AdminComplaintsPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cug-green hover:bg-cug-green-dark disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all"
                     >
                       {isSubmitting ? (
                         <>
@@ -1022,7 +1022,7 @@ export default function AdminComplaintsPage() {
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="px-5 py-2.5 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+                      className="px-5 py-2.5 border border-border hover:border-border text-foreground hover:text-foreground text-sm font-medium rounded-xl transition-all"
                     >
                       Cancel
                     </button>

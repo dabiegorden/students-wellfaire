@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { generateText } from "@/lib/ai";
 
 // ── POST /api/announcements/generate ───────────────────────────────────────
 // Admin only — generates announcement body from title + category using Gemini
@@ -46,13 +44,7 @@ Write a well-structured announcement body (3–5 sentences or short paragraphs) 
 Return ONLY the announcement body text. No subject line, no heading, no preamble, no quotes.
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
-
-    const content = response.text?.trim() ?? "";
-
+    const content = await generateText(prompt);
     return NextResponse.json({ content }, { status: 200 });
   } catch (error) {
     console.error("Error generating announcement content:", error);

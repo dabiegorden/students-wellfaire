@@ -26,12 +26,45 @@ function escapeHtml(value: string) {
 function wrapTemplate(title: string, bodyHtml: string) {
   return `
   <div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
-    <h2 style="color: #111827;">${title}</h2>
-    ${bodyHtml}
-    <p style="margin-top: 32px; font-size: 12px; color: #6b7280;">
-      Students Wellfaire Portal &mdash; this is an automated notification.
-    </p>
+    <div style="background: #0a5c2e; padding: 20px 24px; border-radius: 8px 8px 0 0;">
+      <h2 style="color: #ffffff; margin: 0;">${title}</h2>
+    </div>
+    <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
+      ${bodyHtml}
+      <p style="margin-top: 32px; font-size: 12px; color: #6b7280;">
+        Catholic University of Ghana &mdash; Students Wellfare Portal. This is an automated notification.
+      </p>
+    </div>
   </div>`;
+}
+
+/**
+ * Email a one-time password reset code to a user.
+ */
+export async function sendPasswordResetCode(email: string, code: string) {
+  const bodyHtml = `
+    <p>We received a request to reset the password for your Students Wellfare account.</p>
+    <p>Use the verification code below to continue. It expires in 15 minutes.</p>
+    <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; color: #0a5c2e; background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;">
+      ${escapeHtml(code)}
+    </div>
+    <p style="font-size: 13px; color: #6b7280;">If you did not request a password reset, you can safely ignore this email.</p>
+  `;
+
+  const { error } = await resend.emails.send(
+    {
+      from: FROM_EMAIL,
+      to: email,
+      subject: "Your password reset code",
+      html: wrapTemplate("Password Reset Request", bodyHtml),
+    },
+    { idempotencyKey: `password-reset/${email}/${code}` },
+  );
+
+  if (error) {
+    console.error("Failed to send password reset email:", error);
+    throw new Error("Failed to send reset email");
+  }
 }
 
 /**

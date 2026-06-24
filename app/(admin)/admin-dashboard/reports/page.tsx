@@ -190,8 +190,8 @@ export default function ReportsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-cug-green" />
       </div>
     );
   }
@@ -201,8 +201,8 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <main className="pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-background">
+      <main className="pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
           <motion.div
@@ -210,8 +210,8 @@ export default function ReportsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold text-white mb-2">Reports</h1>
-            <p className="text-zinc-400">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Reports</h1>
+            <p className="text-muted-foreground">
               Generate and download complaints reports
             </p>
           </motion.div>
@@ -221,7 +221,7 @@ export default function ReportsPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+              className="mb-6 flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive"
             >
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">{error}</span>
@@ -235,20 +235,20 @@ export default function ReportsPage() {
             className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
           >
             {/* Filters Card */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
                 Report Filters
               </h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Report Type
                   </label>
                   <select
                     value={reportType}
                     onChange={(e) => setReportType(e.target.value)}
-                    className="w-full h-10 px-3 bg-zinc-800/50 border border-zinc-700/50 focus:border-emerald-500/50 text-white rounded-lg focus:outline-none appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 bg-muted border border-border focus:border-cug-green/50 text-foreground rounded-lg focus:outline-none appearance-none cursor-pointer"
                   >
                     <option value="all">All Complaints</option>
                     <option value="Pending">Pending</option>
@@ -259,13 +259,13 @@ export default function ReportsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Date Range
                   </label>
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full h-10 px-3 bg-zinc-800/50 border border-zinc-700/50 focus:border-emerald-500/50 text-white rounded-lg focus:outline-none appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 bg-muted border border-border focus:border-cug-green/50 text-foreground rounded-lg focus:outline-none appearance-none cursor-pointer"
                   >
                     <option value="7">Last 7 Days</option>
                     <option value="30">Last 30 Days</option>
@@ -277,7 +277,7 @@ export default function ReportsPage() {
                 <Button
                   onClick={handleDownload}
                   disabled={complaints.length === 0 || loading}
-                  className="w-full bg-emerald-400 text-zinc-950 hover:bg-emerald-300 font-semibold h-10 rounded-lg flex items-center justify-center gap-2"
+                  className="w-full bg-cug-green text-white hover:bg-cug-green font-semibold h-10 rounded-lg flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Download as Excel
@@ -286,29 +286,29 @@ export default function ReportsPage() {
             </div>
 
             {/* Summary Card */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
                 Report Summary
               </h2>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-zinc-800/50 rounded-lg">
-                  <span className="text-zinc-300">Total Records</span>
-                  <span className="text-2xl font-bold text-emerald-400">
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="text-foreground">Total Records</span>
+                  <span className="text-2xl font-bold text-cug-green">
                     {complaints.length}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-zinc-800/50 rounded-lg">
-                  <span className="text-zinc-300">Report Type</span>
-                  <span className="text-sm font-medium text-zinc-100 capitalize">
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="text-foreground">Report Type</span>
+                  <span className="text-sm font-medium text-foreground capitalize">
                     {reportType === "all" ? "All Complaints" : reportType}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-zinc-800/50 rounded-lg">
-                  <span className="text-zinc-300">Generated</span>
-                  <span className="text-sm font-medium text-zinc-100">
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="text-foreground">Generated</span>
+                  <span className="text-sm font-medium text-foreground">
                     {new Date().toLocaleDateString()}
                   </span>
                 </div>
@@ -320,71 +320,71 @@ export default function ReportsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"
+            className="bg-card border border-border rounded-xl overflow-hidden"
           >
-            <div className="p-6 border-b border-zinc-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">
+            <div className="p-6 border-b border-border flex items-center gap-2">
+              <FileText className="w-5 h-5 text-cug-green" />
+              <h2 className="text-lg font-semibold text-foreground">
                 Report Preview
               </h2>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center p-12">
-                <Loader className="w-8 h-8 animate-spin text-emerald-400" />
+                <Loader className="w-8 h-8 animate-spin text-cug-green" />
               </div>
             ) : complaints.length === 0 ? (
               <div className="text-center p-12">
-                <p className="text-zinc-400">
+                <p className="text-muted-foreground">
                   No complaints found for this filter
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-zinc-800/50 border-b border-zinc-700">
+                  <thead className="bg-muted border-b border-border">
                     <tr>
-                      <th className="px-6 py-3 text-left font-semibold text-zinc-300">
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">
                         Student
                       </th>
-                      <th className="px-6 py-3 text-left font-semibold text-zinc-300">
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">
                         Title
                       </th>
-                      <th className="px-6 py-3 text-left font-semibold text-zinc-300">
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left font-semibold text-zinc-300">
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">
                         Date
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-border">
                     {complaints.slice(0, 10).map((complaint) => (
                       <tr
                         key={complaint._id}
-                        className="hover:bg-zinc-800/50 transition-colors"
+                        className="hover:bg-muted transition-colors"
                       >
                         <td className="px-6 py-3">
                           <div>
-                            <p className="text-white font-medium">
+                            <p className="text-foreground font-medium">
                               {complaint.studentName}
                             </p>
-                            <p className="text-xs text-zinc-400">
+                            <p className="text-xs text-muted-foreground">
                               {complaint.studentEmail}
                             </p>
                           </div>
                         </td>
                         <td className="px-6 py-3">
-                          <p className="text-white truncate max-w-xs">
+                          <p className="text-foreground truncate max-w-xs">
                             {complaint.title}
                           </p>
                         </td>
                         <td className="px-6 py-3">
-                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/30">
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-cug-green/10 text-cug-green border border-cug-green/30">
                             {complaint.status}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-zinc-400 text-sm">
+                        <td className="px-6 py-3 text-muted-foreground text-sm">
                           {new Date(complaint.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -393,7 +393,7 @@ export default function ReportsPage() {
                 </table>
 
                 {complaints.length > 10 && (
-                  <div className="px-6 py-3 border-t border-zinc-800 text-center text-sm text-zinc-400">
+                  <div className="px-6 py-3 border-t border-border text-center text-sm text-muted-foreground">
                     Showing 10 of {complaints.length} records. Download to see
                     all.
                   </div>
@@ -406,9 +406,9 @@ export default function ReportsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 bg-emerald-400/10 border border-emerald-400/30 rounded-xl p-4"
+            className="mt-6 bg-cug-green/10 border border-cug-green/30 rounded-xl p-4"
           >
-            <p className="text-emerald-400 text-sm">
+            <p className="text-cug-green text-sm">
               Excel reports include detailed complaint information, student
               details, priority levels, status, and admin responses. Use these
               reports for analysis and documentation purposes.

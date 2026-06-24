@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
+import { db } from "@/src/db";
+import { users } from "@/src/schema";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from Authorization header
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
 
@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No token provided" }, { status: 401 });
     }
 
-    // Verify token
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json(
@@ -22,19 +21,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Connect to database
-    await connectDB();
-
-    // Fetch user from database
-    const user = await User.findById(decoded.userId).select("-password");
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Prepare user response based on role
-    let userResponse: any = {
-      id: user._id,
+    let userResponse: Record<string, unknown> = {
+      id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -57,12 +55,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    return NextResponse.json(
-      {
-        user: userResponse,
-      },
-      { status: 200 },
-    );
+    return NextResponse.json({ user: userResponse }, { status: 200 });
   } catch (error) {
     console.error("Get user error:", error);
     return NextResponse.json(

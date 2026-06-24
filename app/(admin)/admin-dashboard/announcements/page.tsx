@@ -66,10 +66,10 @@ const categoryColors: Record<string, string> = {
 const categoryStyles: Record<string, string> = {
   General: "bg-blue-400/10 text-blue-400 border-blue-400/25",
   Academic: "bg-violet-400/10 text-violet-400 border-violet-400/25",
-  Events: "bg-emerald-400/10 text-emerald-400 border-emerald-400/25",
-  Emergency: "bg-red-400/10 text-red-400 border-red-400/25",
+  Events: "bg-cug-green/10 text-cug-green border-cug-green/25",
+  Emergency: "bg-red-400/10 text-destructive border-destructive/40/25",
   Welfare: "bg-amber-400/10 text-amber-400 border-amber-400/25",
-  Other: "bg-zinc-400/10 text-zinc-400 border-zinc-400/25",
+  Other: "bg-muted text-muted-foreground border-border/25",
 };
 
 function CategoryBadge({ category }: { category: string }) {
@@ -211,7 +211,7 @@ function AnnouncementModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto relative"
+        className="bg-card border border-border rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto relative"
       >
         {/* Success overlay */}
         <AnimatePresence>
@@ -220,7 +220,7 @@ function AnnouncementModal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-zinc-900/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"
+              className="absolute inset-0 bg-card/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"
             >
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -228,10 +228,10 @@ function AnnouncementModal({
                 transition={{ type: "spring", duration: 0.5 }}
                 className="flex flex-col items-center gap-3"
               >
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
-                  <Check className="w-8 h-8 text-emerald-400" />
+                <div className="w-16 h-16 rounded-full bg-cug-green/20 border-2 border-cug-green/40 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-cug-green" />
                 </div>
-                <p className="text-white font-semibold text-lg">
+                <p className="text-foreground font-semibold text-lg">
                   {mode === "create"
                     ? "Announcement Created!"
                     : "Changes Saved!"}
@@ -243,7 +243,7 @@ function AnnouncementModal({
 
         {/* Header */}
         <div
-          className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-zinc-800 rounded-t-2xl"
+          className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border rounded-t-2xl"
           style={{
             background: `linear-gradient(135deg, ${color}11, #18181b)`,
             borderBottom: `1px solid ${color}22`,
@@ -259,13 +259,13 @@ function AnnouncementModal({
             >
               📢
             </div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-semibold text-foreground">
               {mode === "create" ? "New Announcement" : "Edit Announcement"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -279,7 +279,7 @@ function AnnouncementModal({
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/25 rounded-xl text-red-400 text-sm"
+                className="flex items-center gap-2 px-4 py-3 bg-destructive/10 border border-destructive/25 rounded-xl text-destructive text-sm"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
@@ -289,8 +289,8 @@ function AnnouncementModal({
 
           {/* Title */}
           <div>
-            <label className="text-xs text-zinc-400 font-medium mb-1.5 block">
-              Title <span className="text-red-400">*</span>
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+              Title <span className="text-destructive">*</span>
             </label>
             <input
               value={form.title}
@@ -298,21 +298,21 @@ function AnnouncementModal({
                 setForm((p) => ({ ...p, title: e.target.value }))
               }
               placeholder="Announcement title…"
-              className="w-full px-4 py-2.5 bg-zinc-950/70 border border-zinc-800 hover:border-zinc-700 focus:border-emerald-500/50 rounded-xl text-white placeholder:text-zinc-600 outline-none text-sm transition-all"
+              className="w-full px-4 py-2.5 bg-background/70 border border-border hover:border-border focus:border-cug-green/50 rounded-xl text-foreground placeholder:text-muted-foreground outline-none text-sm transition-all"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="text-xs text-zinc-400 font-medium mb-1.5 block">
-              Category <span className="text-red-400">*</span>
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+              Category <span className="text-destructive">*</span>
             </label>
             <select
               value={form.category}
               onChange={(e) =>
                 setForm((p) => ({ ...p, category: e.target.value as any }))
               }
-              className="w-full px-4 py-2.5 bg-zinc-950/70 border border-zinc-800 hover:border-zinc-700 focus:border-emerald-500/50 text-white rounded-xl text-sm outline-none appearance-none cursor-pointer transition-all"
+              className="w-full px-4 py-2.5 bg-background/70 border border-border hover:border-border focus:border-cug-green/50 text-foreground rounded-xl text-sm outline-none appearance-none cursor-pointer transition-all"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -325,14 +325,14 @@ function AnnouncementModal({
           {/* Content */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-zinc-400 font-medium">
-                Content <span className="text-red-400">*</span>
+              <label className="text-xs text-muted-foreground font-medium">
+                Content <span className="text-destructive">*</span>
               </label>
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all disabled:opacity-40 bg-cug-green/10 border-cug-green/30 text-cug-green hover:bg-cug-green/20"
               >
                 {isGenerating ? (
                   <>
@@ -356,7 +356,7 @@ function AnnouncementModal({
                 }
                 rows={6}
                 placeholder="Write your announcement content here…"
-                className="w-full px-4 py-3 bg-zinc-950/70 border border-zinc-800 hover:border-zinc-700 focus:border-emerald-500/50 rounded-xl text-white placeholder:text-zinc-600 outline-none text-sm resize-none transition-all"
+                className="w-full px-4 py-3 bg-background/70 border border-border hover:border-border focus:border-cug-green/50 rounded-xl text-foreground placeholder:text-muted-foreground outline-none text-sm resize-none transition-all"
               />
               <AnimatePresence>
                 {aiUsed && (
@@ -364,7 +364,7 @@ function AnnouncementModal({
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] text-emerald-400/70 bg-emerald-400/5 border border-emerald-400/20 rounded-md px-2 py-1"
+                    className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] text-cug-green/70 bg-cug-green/5 border border-cug-green/20 rounded-md px-2 py-1"
                   >
                     <Sparkles className="w-2.5 h-2.5" />
                     AI-drafted · edit freely
@@ -383,7 +383,7 @@ function AnnouncementModal({
                   setForm((p) => ({ ...p, isPinned: !p.isPinned }))
                 }
                 className={`w-9 h-5 rounded-full transition-all relative ${
-                  form.isPinned ? "bg-emerald-500" : "bg-zinc-700"
+                  form.isPinned ? "bg-cug-green" : "bg-muted"
                 }`}
               >
                 <div
@@ -393,10 +393,10 @@ function AnnouncementModal({
                 />
               </div>
               <div>
-                <p className="text-sm text-zinc-300 font-medium">
+                <p className="text-sm text-foreground font-medium">
                   Pin announcement
                 </p>
-                <p className="text-xs text-zinc-600">
+                <p className="text-xs text-muted-foreground">
                   Pinned announcements always appear at the top
                 </p>
               </div>
@@ -414,8 +414,8 @@ function AnnouncementModal({
                 }
                 className={`w-9 h-5 rounded-full transition-all relative ${
                   (mode === "create" ? form.sendEmail : form.resendEmail)
-                    ? "bg-emerald-500"
-                    : "bg-zinc-700"
+                    ? "bg-cug-green"
+                    : "bg-muted"
                 }`}
               >
                 <div
@@ -427,12 +427,12 @@ function AnnouncementModal({
                 />
               </div>
               <div>
-                <p className="text-sm text-zinc-300 font-medium">
+                <p className="text-sm text-foreground font-medium">
                   {mode === "create"
                     ? "Email all students"
                     : "Re-send email to all students"}
                 </p>
-                <p className="text-xs text-zinc-600">
+                <p className="text-xs text-muted-foreground">
                   {mode === "create"
                     ? "Send an email notification to every registered student"
                     : "Notify all students about the updated announcement"}
@@ -446,7 +446,7 @@ function AnnouncementModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cug-green hover:bg-cug-green-dark disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all"
             >
               {isSubmitting ? (
                 <>
@@ -463,7 +463,7 @@ function AnnouncementModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+              className="px-5 py-2.5 border border-border hover:border-border text-foreground hover:text-foreground text-sm font-medium rounded-xl transition-all"
             >
               Cancel
             </button>
@@ -501,7 +501,7 @@ function PreviewModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full max-h-[88vh] overflow-y-auto"
+        className="bg-card border border-border rounded-2xl max-w-xl w-full max-h-[88vh] overflow-y-auto"
       >
         {/* Header */}
         <div
@@ -522,10 +522,10 @@ function PreviewModal({
                   </span>
                 )}
               </div>
-              <h2 className="text-lg font-bold text-white leading-snug">
+              <h2 className="text-lg font-bold text-foreground leading-snug">
                 {announcement.title}
               </h2>
-              <p className="text-xs text-zinc-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Posted by {announcement.authorName} ·{" "}
                 {new Date(announcement.createdAt).toLocaleDateString("en-GB", {
                   day: "2-digit",
@@ -536,7 +536,7 @@ function PreviewModal({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all shrink-0"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -544,12 +544,12 @@ function PreviewModal({
         </div>
 
         <div className="p-6 space-y-5">
-          <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
+          <p className="text-foreground text-sm leading-relaxed whitespace-pre-line">
             {announcement.content}
           </p>
 
           {announcement.emailSent && (
-            <div className="flex items-center gap-2 text-emerald-400/80 text-xs bg-emerald-400/5 border border-emerald-400/15 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-cug-green/80 text-xs bg-cug-green/5 border border-cug-green/15 rounded-lg px-3 py-2">
               <MailCheck className="w-3.5 h-3.5" />
               Emailed to all students on{" "}
               {new Date(announcement.emailSentAt!).toLocaleDateString("en-GB", {
@@ -563,14 +563,14 @@ function PreviewModal({
           <div className="flex gap-2 pt-1">
             <button
               onClick={onEdit}
-              className="flex items-center gap-1.5 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 bg-muted hover:bg-muted text-foreground hover:text-foreground text-sm font-medium rounded-xl transition-all"
             >
               <Edit3 className="w-3.5 h-3.5" />
               Edit
             </button>
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 text-sm font-medium rounded-xl transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 bg-destructive/10 hover:bg-red-500/20 border border-destructive/25 text-destructive text-sm font-medium rounded-xl transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Delete
@@ -685,21 +685,21 @@ export default function AdminAnnouncementPage() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
       </div>
     );
   }
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-background">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-150 h-75 rounded-full bg-emerald-500/3 blur-[120px]" />
+        <div className="absolute top-0 right-1/4 w-150 h-75 rounded-full bg-cug-green/3 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 pt-24 pb-16 px-6">
+      <main className="relative z-10 pt-6 pb-12 px-6">
         <div className="container mx-auto max-w-7xl">
           {/* Header */}
           <motion.div
@@ -710,15 +710,15 @@ export default function AdminAnnouncementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-0.5 bg-emerald-400" />
-                  <span className="text-emerald-400 text-xs font-semibold tracking-[0.2em] uppercase">
+                  <div className="w-6 h-0.5 bg-cug-green" />
+                  <span className="text-cug-green text-xs font-semibold tracking-[0.2em] uppercase">
                     Admin Dashboard
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-1">
+                <h1 className="text-3xl font-bold text-foreground mb-1">
                   Announcements
                 </h1>
-                <p className="text-zinc-500 text-sm">
+                <p className="text-muted-foreground text-sm">
                   {total} announcement{total !== 1 ? "s" : ""} · Broadcast to
                   all students
                 </p>
@@ -727,7 +727,7 @@ export default function AdminAnnouncementPage() {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                className="flex items-center gap-2 px-4 py-2.5 bg-cug-green hover:bg-cug-green-dark text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-cug-green/20"
               >
                 <Plus className="w-4 h-4" />
                 New Announcement
@@ -742,7 +742,7 @@ export default function AdminAnnouncementPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-red-500/10 border border-red-500/25 rounded-xl text-red-400 text-sm"
+                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-destructive/10 border border-destructive/25 rounded-xl text-destructive text-sm"
               >
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
@@ -753,7 +753,7 @@ export default function AdminAnnouncementPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-sm"
+                className="mb-5 flex items-center gap-2.5 px-4 py-3 bg-cug-green/10 border border-cug-green/25 rounded-xl text-cug-green text-sm"
               >
                 <Sparkles className="w-4 h-4 shrink-0" />
                 {success}
@@ -766,17 +766,17 @@ export default function AdminAnnouncementPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="mb-5 bg-zinc-900/70 border border-zinc-800 rounded-xl p-4"
+            className="mb-5 bg-card/70 border border-border rounded-xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Filter className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm font-semibold text-zinc-300">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">
                 Filters
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-600" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                 <input
                   placeholder="Search announcements…"
                   value={search}
@@ -784,7 +784,7 @@ export default function AdminAnnouncementPage() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full pl-9 pr-4 h-9 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white placeholder:text-zinc-600 rounded-lg text-sm outline-none transition-all"
+                  className="w-full pl-9 pr-4 h-9 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground placeholder:text-muted-foreground rounded-lg text-sm outline-none transition-all"
                 />
               </div>
               <select
@@ -793,7 +793,7 @@ export default function AdminAnnouncementPage() {
                   setCategoryFilter(e.target.value);
                   setPage(1);
                 }}
-                className="h-9 px-3 bg-zinc-800/60 border border-zinc-700/60 focus:border-emerald-500/40 text-white rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
+                className="h-9 px-3 bg-muted/60 border border-border/60 focus:border-cug-green/40 text-foreground rounded-lg text-sm outline-none appearance-none cursor-pointer transition-all"
               >
                 <option value="">All Categories</option>
                 {CATEGORIES.map((c) => (
@@ -810,19 +810,19 @@ export default function AdminAnnouncementPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-zinc-900/70 border border-zinc-800 rounded-xl overflow-hidden"
+            className="bg-card/70 border border-border rounded-xl overflow-hidden"
           >
             {loading ? (
               <div className="flex items-center justify-center p-16">
-                <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+                <Loader2 className="w-7 h-7 animate-spin text-cug-green" />
               </div>
             ) : announcements.length === 0 ? (
               <div className="text-center p-16">
-                <Megaphone className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-500 text-sm">No announcements yet</p>
+                <Megaphone className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No announcements yet</p>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="mt-4 text-emerald-400 text-sm hover:underline"
+                  className="mt-4 text-cug-green text-sm hover:underline"
                 >
                   Create the first one →
                 </button>
@@ -830,7 +830,7 @@ export default function AdminAnnouncementPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-zinc-800/60 border-b border-zinc-700/60">
+                  <thead className="bg-muted/60 border-b border-border/60">
                     <tr>
                       {[
                         "Title",
@@ -843,20 +843,20 @@ export default function AdminAnnouncementPage() {
                       ].map((h) => (
                         <th
                           key={h}
-                          className="px-5 py-3.5 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                         >
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800/60">
+                  <tbody className="divide-y divide-border/60">
                     {announcements.map((a) => {
                       const color = categoryColors[a.category] ?? "#6b7280";
                       return (
                         <tr
                           key={a._id}
-                          className="hover:bg-zinc-800/30 transition-colors group"
+                          className="hover:bg-muted transition-colors group"
                         >
                           <td className="px-5 py-4 max-w-64">
                             <div className="flex items-center gap-2">
@@ -866,7 +866,7 @@ export default function AdminAnnouncementPage() {
                                   style={{ color }}
                                 />
                               )}
-                              <p className="text-white text-sm font-medium truncate">
+                              <p className="text-foreground text-sm font-medium truncate">
                                 {a.title}
                               </p>
                             </div>
@@ -875,18 +875,18 @@ export default function AdminAnnouncementPage() {
                             <CategoryBadge category={a.category} />
                           </td>
                           <td className="px-5 py-4">
-                            <span className="text-zinc-400 text-sm">
+                            <span className="text-muted-foreground text-sm">
                               {a.authorName}
                             </span>
                           </td>
                           <td className="px-5 py-4">
                             {a.emailSent ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
+                              <span className="inline-flex items-center gap-1 text-cug-green text-xs">
                                 <MailCheck className="w-3.5 h-3.5" />
                                 Sent
                               </span>
                             ) : (
-                              <span className="text-zinc-700 text-xs">—</span>
+                              <span className="text-muted-foreground text-xs">—</span>
                             )}
                           </td>
                           <td className="px-5 py-4">
@@ -895,11 +895,11 @@ export default function AdminAnnouncementPage() {
                                 Yes
                               </span>
                             ) : (
-                              <span className="text-zinc-700 text-xs">No</span>
+                              <span className="text-muted-foreground text-xs">No</span>
                             )}
                           </td>
                           <td className="px-5 py-4">
-                            <span className="text-zinc-500 text-xs">
+                            <span className="text-muted-foreground text-xs">
                               {new Date(a.createdAt).toLocaleDateString(
                                 "en-GB",
                                 {
@@ -914,19 +914,19 @@ export default function AdminAnnouncementPage() {
                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => setPreviewTarget(a)}
-                                className="p-1.5 rounded-lg bg-zinc-700/50 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all"
+                                className="p-1.5 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setEditTarget(a)}
-                                className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                                className="p-1.5 rounded-lg bg-cug-green/10 border border-cug-green/25 text-cug-green hover:bg-cug-green/20 transition-all"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(a._id)}
-                                className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 transition-all"
+                                className="p-1.5 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive hover:bg-red-500/20 transition-all"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -942,22 +942,22 @@ export default function AdminAnnouncementPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-zinc-800/60 bg-zinc-900/40">
-                <span className="text-xs text-zinc-500">
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/60 bg-card/40">
+                <span className="text-xs text-muted-foreground">
                   Page {page} of {totalPages}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
-                    className="p-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

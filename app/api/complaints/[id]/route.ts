@@ -1,57 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Complaint from "@/models/Complaint";
-import User from "@/models/User";
-import { Types } from "mongoose";
-import { GoogleGenAI } from "@google/genai";
+import { eq } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints, users } from "@/src/schema";
+import { getCurrentUser } from "@/lib/auth";
+import { analyseComplaintWithAI } from "@/lib/ai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-async function analyseComplaintWithAI(
-  title: string,
-  category: string,
-  description: string,
-): Promise<{
-  aiPriority: "Low" | "Medium" | "High" | "Critical";
-  aiExplanation: string;
-  aiScore: number;
-}> {
-  const prompt = `
-You are an expert student affairs officer at a university. Analyse the following student complaint and determine its priority level.
-
-Complaint Title: "${title}"
-Category: "${category}"
-Description: "${description}"
-
-Evaluate urgency based on:
-- Potential impact on student wellbeing, academic performance, or safety
-- Time-sensitivity of the issue
-- Severity and seriousness of the concern
-- Whether it affects one student or multiple
-
-Respond with ONLY a valid JSON object in this exact format (no markdown, no explanation outside JSON):
-{
-  "priority": "Low" | "Medium" | "High" | "Critical",
-  "score": <integer 0-100 representing urgency, 100 being most urgent>,
-  "explanation": "<2-3 sentences explaining why this priority was assigned and what factors were most important>"
-}
-`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-  });
-
-  const raw = response.text?.trim() ?? "";
-  const clean = raw.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
-
-  return {
-    aiPriority: parsed.priority,
-    aiExplanation: parsed.explanation,
-    aiScore: parsed.score,
-  };
+async function loadComplaintWithStudent(id: string) {
+  const [row] = await db
+    .select({
+      complaint: complaints,
+      student: {
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        studentId: users.studentId,
+      },
+    })
+    .from(complaints)
+    .leftJoin(users, eq(complaints.studentId, users.id))
+    .where(eq(complaints.id, id))
+    .limit(1);
+  if (!row) return null;
+  return { ...row.complaint, _id: row.complaint.id, student: row.student };
 }
 
 export async function GET(
@@ -60,38 +31,12 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = (decoded as any).userId;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid complaint ID" },
-        { status: 400 },
-      );
-    }
-
-    const complaint = await Complaint.findById(id)
-      .populate("studentId", "firstName lastName email studentId")
-      .lean();
-
+    const complaint = await loadComplaintWithStudent(id);
     if (!complaint) {
       return NextResponse.json(
         { error: "Complaint not found" },
@@ -99,10 +44,7 @@ export async function GET(
       );
     }
 
-    if (
-      user.role === "students" &&
-      (complaint.studentId as any)._id.toString() !== userId
-    ) {
+    if (user.role === "students" && complaint.studentId !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -122,36 +64,16 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = (decoded as any).userId;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid complaint ID" },
-        { status: 400 },
-      );
-    }
-
-    const body = await request.json();
-    const complaint = await Complaint.findById(id);
+    const [complaint] = await db
+      .select()
+      .from(complaints)
+      .where(eq(complaints.id, id))
+      .limit(1);
 
     if (!complaint) {
       return NextResponse.json(
@@ -160,9 +82,10 @@ export async function PATCH(
       );
     }
 
+    const body = await request.json();
+
     if (user.role === "admin") {
       const { adminReply, status, priority, reanalyse } = body;
-
       if (!adminReply && !status && !priority && !reanalyse) {
         return NextResponse.json(
           { error: "Reply, status, priority, or reanalyse flag is required" },
@@ -170,17 +93,16 @@ export async function PATCH(
         );
       }
 
-      const updateData: any = {};
-
+      const updateData: Record<string, unknown> = { updatedAt: new Date() };
       if (adminReply) {
         updateData.adminReply = adminReply;
         updateData.repliedAt = new Date();
-        updateData.adminId = userId;
+        updateData.repliedBy = "admin";
+        updateData.adminId = user.id;
       }
       if (status) updateData.status = status;
       if (priority) updateData.priority = priority;
 
-      // Admin can trigger AI re-analysis
       if (reanalyse) {
         try {
           const aiData = await analyseComplaintWithAI(
@@ -192,7 +114,6 @@ export async function PATCH(
           updateData.aiExplanation = aiData.aiExplanation;
           updateData.aiScore = aiData.aiScore;
           updateData.aiAnalysedAt = new Date();
-          // Also update the actual priority to match AI
           updateData.priority = aiData.aiPriority;
         } catch (aiError) {
           console.error("AI re-analysis failed:", aiError);
@@ -203,14 +124,11 @@ export async function PATCH(
         }
       }
 
-      const updatedComplaint = await Complaint.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true },
-      ).populate("studentId", "firstName lastName email studentId");
+      await db.update(complaints).set(updateData).where(eq(complaints.id, id));
+      const updated = await loadComplaintWithStudent(id);
 
       return NextResponse.json({
-        complaint: updatedComplaint,
+        complaint: updated,
         message: "Complaint updated successfully",
       });
     } else if (user.role === "students") {
@@ -220,11 +138,9 @@ export async function PATCH(
           { status: 403 },
         );
       }
-
-      if (complaint.studentId.toString() !== userId) {
+      if (complaint.studentId !== user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-
       if (!body.title && !body.description) {
         return NextResponse.json(
           { error: "Missing fields to update" },
@@ -232,16 +148,15 @@ export async function PATCH(
         );
       }
 
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = { updatedAt: new Date() };
       if (body.title) updateData.title = body.title;
       if (body.description) updateData.description = body.description;
 
-      // Re-run AI analysis if content changed
       try {
         const aiData = await analyseComplaintWithAI(
-          updateData.title ?? complaint.title,
+          (body.title ?? complaint.title) as string,
           complaint.category,
-          updateData.description ?? complaint.description,
+          (body.description ?? complaint.description) as string,
         );
         updateData.aiPriority = aiData.aiPriority;
         updateData.aiExplanation = aiData.aiExplanation;
@@ -252,19 +167,16 @@ export async function PATCH(
         console.error("AI re-analysis on edit failed:", aiError);
       }
 
-      const updatedComplaint = await Complaint.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true },
-      );
+      await db.update(complaints).set(updateData).where(eq(complaints.id, id));
+      const updated = await loadComplaintWithStudent(id);
 
       return NextResponse.json({
-        complaint: updatedComplaint,
+        complaint: updated,
         message: "Complaint updated successfully",
       });
-    } else {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   } catch (error) {
     console.error("Error updating complaint:", error);
     return NextResponse.json(
@@ -280,35 +192,16 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    await connectDB();
-
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = (decoded as any).userId;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid complaint ID" },
-        { status: 400 },
-      );
-    }
-
-    const complaint = await Complaint.findById(id);
+    const [complaint] = await db
+      .select()
+      .from(complaints)
+      .where(eq(complaints.id, id))
+      .limit(1);
 
     if (!complaint) {
       return NextResponse.json(
@@ -318,7 +211,7 @@ export async function DELETE(
     }
 
     if (user.role === "students") {
-      if (complaint.studentId.toString() !== userId) {
+      if (complaint.studentId !== user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       if (complaint.status !== "Pending") {
@@ -331,7 +224,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await Complaint.findByIdAndDelete(id);
+    await db.delete(complaints).where(eq(complaints.id, id));
 
     return NextResponse.json({ message: "Complaint deleted successfully" });
   } catch (error) {

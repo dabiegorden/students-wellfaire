@@ -59,7 +59,7 @@ const ComplaintsPage = () => {
         }
 
         const response = await fetch(
-          `/api/students/complaints?${queryParams.toString()}`,
+          `/api/complaints?${queryParams.toString()}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -95,7 +95,7 @@ const ComplaintsPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/students/complaints/${id}`, {
+      const response = await fetch(`/api/complaints/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -121,22 +121,22 @@ const ComplaintsPage = () => {
       case "in-progress":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "resolved":
-        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+        return "bg-cug-green/10 text-cug-green border-cug-green/20";
       default:
-        return "bg-zinc-500/10 text-zinc-500 border-zinc-500/20";
+        return "bg-muted text-muted-foreground border-border/20";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "bg-red-500/10 text-red-500";
+        return "bg-destructive/10 text-destructive";
       case "normal":
         return "bg-blue-500/10 text-blue-500";
       case "low":
-        return "bg-emerald-500/10 text-emerald-500";
+        return "bg-cug-green/10 text-cug-green";
       default:
-        return "bg-zinc-500/10 text-zinc-500";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -155,36 +155,36 @@ const ComplaintsPage = () => {
 
   if (loading && complaints.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-900">
+      <div className="flex items-center justify-center min-h-screen bg-card">
         <div className="text-center">
-          <Loader className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-2" />
-          <p className="text-zinc-400">Loading complaints...</p>
+          <Loader className="w-8 h-8 text-cug-green animate-spin mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading complaints...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-card">
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white">My Complaints</h1>
-            <p className="text-zinc-400 mt-2">
+            <h1 className="text-4xl font-bold text-foreground">My Complaints</h1>
+            <p className="text-muted-foreground mt-2">
               Track and manage your submitted complaints
             </p>
           </div>
           <Link
-            href="/admin-dashboard/students/complaints/new"
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg transition-colors font-medium"
+            href="/students-dashboard/complaints/new"
+            className="bg-cug-green hover:bg-cug-green-dark text-white px-6 py-2 rounded-lg transition-colors font-medium"
           >
             + New Complaint
           </Link>
         </div>
 
         {/* Filters */}
-        <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 mb-6">
-          <label className="text-zinc-300 text-sm font-medium mb-2 block">
+        <div className="bg-muted border border-border rounded-lg p-4 mb-6">
+          <label className="text-foreground text-sm font-medium mb-2 block">
             Filter by Status
           </label>
           <select
@@ -193,7 +193,7 @@ const ComplaintsPage = () => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full md:w-48 px-4 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+            className="w-full md:w-48 px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:border-cug-green"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -204,17 +204,17 @@ const ComplaintsPage = () => {
 
         {/* Complaints List */}
         {complaints.length === 0 ? (
-          <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-8 text-center">
-            <FileText className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
+          <div className="bg-muted border border-border rounded-lg p-8 text-center">
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               No complaints yet
             </h3>
-            <p className="text-zinc-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               You haven't submitted any complaints
             </p>
             <Link
               href="/dashboard/student/complaints/new"
-              className="inline-block bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg transition-colors"
+              className="inline-block bg-cug-green hover:bg-cug-green-dark text-white px-6 py-2 rounded-lg transition-colors"
             >
               Submit Your First Complaint
             </Link>
@@ -224,14 +224,14 @@ const ComplaintsPage = () => {
             {complaints.map((complaint) => (
               <div
                 key={complaint._id}
-                className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 hover:border-zinc-600 transition-colors"
+                className="bg-muted border border-border rounded-lg p-6 hover:border-border transition-colors"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-1">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">
                       {complaint.title}
                     </h3>
-                    <p className="text-zinc-400 text-sm line-clamp-2">
+                    <p className="text-muted-foreground text-sm line-clamp-2">
                       {complaint.description}
                     </p>
                   </div>
@@ -249,7 +249,7 @@ const ComplaintsPage = () => {
                     {complaint.status === "pending" && (
                       <button
                         onClick={() => handleDelete(complaint._id)}
-                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                        className="p-2 bg-destructive/10 hover:bg-red-500/20 text-destructive rounded-lg transition-colors"
                         title="Delete complaint"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -277,7 +277,7 @@ const ComplaintsPage = () => {
                       complaint.priority.slice(1)}{" "}
                     Priority
                   </span>
-                  <span className="text-zinc-500 text-xs">
+                  <span className="text-muted-foreground text-xs">
                     {new Date(complaint.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -292,17 +292,17 @@ const ComplaintsPage = () => {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+              className="px-4 py-2 bg-muted border border-border rounded-lg text-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
             >
               Previous
             </button>
-            <span className="text-zinc-400">
+            <span className="text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-700 transition-colors"
+              className="px-4 py-2 bg-muted border border-border rounded-lg text-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
             >
               Next
             </button>
@@ -312,14 +312,14 @@ const ComplaintsPage = () => {
         {/* Detail Modal */}
         {showModal && selectedComplaint && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-zinc-800 border border-zinc-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-zinc-700 flex items-center justify-between sticky top-0 bg-zinc-800">
-                <h2 className="text-2xl font-bold text-white">
+            <div className="bg-muted border border-border rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-border flex items-center justify-between sticky top-0 bg-muted">
+                <h2 className="text-2xl font-bold text-foreground">
                   Complaint Details
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-zinc-400 hover:text-white text-2xl"
+                  className="text-muted-foreground hover:text-foreground text-2xl"
                 >
                   ×
                 </button>
@@ -327,34 +327,34 @@ const ComplaintsPage = () => {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-400 mb-1">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
                     Title
                   </h3>
-                  <p className="text-white text-lg">
+                  <p className="text-foreground text-lg">
                     {selectedComplaint.title}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-400 mb-1">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
                     Description
                   </h3>
-                  <p className="text-zinc-300">
+                  <p className="text-foreground">
                     {selectedComplaint.description}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium text-zinc-400 mb-1">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Category
                     </h3>
-                    <p className="text-white capitalize">
+                    <p className="text-foreground capitalize">
                       {selectedComplaint.category}
                     </p>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-zinc-400 mb-1">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Priority
                     </h3>
                     <span
@@ -369,7 +369,7 @@ const ComplaintsPage = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-400 mb-1">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
                     Status
                   </h3>
                   <span
@@ -384,30 +384,30 @@ const ComplaintsPage = () => {
                 </div>
 
                 {selectedComplaint.adminReply && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-emerald-500 mb-2">
+                  <div className="bg-cug-green/10 border border-cug-green/20 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-cug-green mb-2">
                       Admin Reply
                     </h3>
-                    <p className="text-zinc-300">
+                    <p className="text-foreground">
                       {selectedComplaint.adminReply}
                     </p>
                     {selectedComplaint.repliedAt && (
-                      <p className="text-zinc-500 text-xs mt-2">
+                      <p className="text-muted-foreground text-xs mt-2">
                         {new Date(selectedComplaint.repliedAt).toLocaleString()}
                       </p>
                     )}
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-4 border-t border-zinc-700">
-                  <span className="text-zinc-500 text-sm">
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <span className="text-muted-foreground text-sm">
                     Submitted:{" "}
                     {new Date(selectedComplaint.createdAt).toLocaleString()}
                   </span>
                   {selectedComplaint.status === "pending" && (
                     <button
                       onClick={() => handleDelete(selectedComplaint._id)}
-                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors font-medium"
+                      className="px-4 py-2 bg-destructive/10 hover:bg-red-500/20 text-destructive rounded-lg transition-colors font-medium"
                     >
                       Delete Complaint
                     </button>

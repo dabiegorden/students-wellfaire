@@ -1,161 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/jwt";
-import { connectDB } from "@/lib/db";
-import Complaint from "@/models/Complaint";
-import User from "@/models/User";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { db } from "@/src/db";
+import { complaints, users } from "@/src/schema";
+import { getAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    // Verify authorization
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const decoded = verifyToken(token);
-
-    if (!decoded || (decoded as any).role !== "admin") {
+    const decoded = getAuth(request);
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const days = parseInt(searchParams.get("days") || "30");
-
-    // Get date range
+    const days = parseInt(request.nextUrl.searchParams.get("days") || "30");
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Get complaints statistics
-    const complaintStats = await Complaint.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          resolved: {
-            $sum: { $cond: [{ $eq: ["$status", "Resolved"] }, 1, 0] },
-          },
-          pending: {
-            $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] },
-          },
-          inProgress: {
-            $sum: { $cond: [{ $eq: ["$status", "In Progress"] }, 1, 0] },
-          },
-          closed: {
-            $sum: { $cond: [{ $eq: ["$status", "Closed"] }, 1, 0] },
-          },
-        },
-      },
-    ]);
+    const range = and(
+      gte(complaints.createdAt, startDate),
+      lte(complaints.createdAt, endDate),
+    );
 
-    // Get complaints by category
-    const complaintsByCategory = await Complaint.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const [stats] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        resolved: sql<number>`sum(case when ${complaints.status} = 'Resolved' then 1 else 0 end)::int`,
+        pending: sql<number>`sum(case when ${complaints.status} = 'Pending' then 1 else 0 end)::int`,
+        inProgress: sql<number>`sum(case when ${complaints.status} = 'In Progress' then 1 else 0 end)::int`,
+        closed: sql<number>`sum(case when ${complaints.status} = 'Closed' then 1 else 0 end)::int`,
+      })
+      .from(complaints)
+      .where(range);
 
-    // Get complaints by priority
-    const complaintsByPriority = await Complaint.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: "$priority",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const complaintsByCategory = await db
+      .select({ name: complaints.category, value: sql<number>`count(*)::int` })
+      .from(complaints)
+      .where(range)
+      .groupBy(complaints.category);
 
-    // Get complaints by faculty
-    const complaintsByFaculty = await Complaint.aggregate([
-      {
-        $lookup: {
-          from: "users",
-          localField: "studentId",
-          foreignField: "_id",
-          as: "student",
-        },
-      },
-      {
-        $unwind: "$student",
-      },
-      {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: "$student.faculty",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const complaintsByPriority = await db
+      .select({ name: complaints.priority, value: sql<number>`count(*)::int` })
+      .from(complaints)
+      .where(range)
+      .groupBy(complaints.priority);
 
-    // Get total students
-    const totalStudents = await User.countDocuments({ role: "students" });
+    const complaintsByFaculty = await db
+      .select({
+        name: sql<string>`coalesce(${users.faculty}, 'Unknown')`,
+        value: sql<number>`count(*)::int`,
+      })
+      .from(complaints)
+      .innerJoin(users, eq(complaints.studentId, users.id))
+      .where(range)
+      .groupBy(users.faculty);
 
-    // Format response
-    const stats = complaintStats[0] || {
-      total: 0,
-      resolved: 0,
-      pending: 0,
-      inProgress: 0,
-      closed: 0,
-    };
+    const [{ count: totalStudents }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, "students"));
 
-    const categoryData = complaintsByCategory.map((item) => ({
-      name: item._id,
-      value: item.count,
-    }));
-
-    const priorityData = complaintsByPriority.map((item) => ({
-      name: item._id,
-      value: item.count,
-    }));
-
-    const facultyData = complaintsByFaculty.map((item) => ({
-      name: item._id || "Unknown",
-      value: item.count,
-    }));
-
-    const resolutionRate =
-      stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
+    const total = stats?.total ?? 0;
+    const resolved = stats?.resolved ?? 0;
+    const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
 
     return NextResponse.json({
       summary: {
-        totalComplaints: stats.total,
-        resolvedComplaints: stats.resolved,
-        pendingComplaints: stats.pending,
-        inProgressComplaints: stats.inProgress,
-        closedComplaints: stats.closed,
+        totalComplaints: total,
+        resolvedComplaints: resolved,
+        pendingComplaints: stats?.pending ?? 0,
+        inProgressComplaints: stats?.inProgress ?? 0,
+        closedComplaints: stats?.closed ?? 0,
         resolutionRate,
         totalStudents,
       },
-      categoryData,
-      priorityData,
-      facultyData,
+      categoryData: complaintsByCategory,
+      priorityData: complaintsByPriority,
+      facultyData: complaintsByFaculty,
     });
   } catch (error) {
     console.error("Error fetching analytics:", error);
