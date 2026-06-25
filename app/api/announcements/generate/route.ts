@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/jwt";
 import { generateText } from "@/lib/ai";
 
 // ── POST /api/announcements/generate ───────────────────────────────────────
-// Admin only — generates announcement body from title + category using Gemini
+// Admin only — generates announcement body from title + category using GitHub Models (OpenAI gpt-4o)
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");

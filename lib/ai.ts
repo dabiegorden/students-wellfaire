@@ -1,11 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
-export const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const endpoint = "https://models.github.ai/inference";
 
-// Primary model (free tier). Fallback is used automatically when the primary
-// is overloaded (503) / rate-limited (429) / unavailable.
-export const AI_MODEL = "gemini-3.5-flash";
-const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash"];
+export const ai = new OpenAI({
+  baseURL: endpoint,
+  apiKey: process.env.GITHUB_TOKEN,
+});
+
+// Primary model (GitHub Models free tier). Fallback is used automatically when
+// the primary is overloaded (503) / rate-limited (429) / unavailable.
+export const AI_MODEL = "openai/gpt-4o";
+const FALLBACK_MODELS = ["openai/gpt-4o-mini"];
 
 export type AIPriority = "Low" | "Medium" | "High" | "Critical";
 
@@ -28,11 +33,17 @@ export async function generateText(prompt: string): Promise<string> {
     // Retry transient overloads (503) / rate limits (429) with backoff.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await ai.models.generateContent({
+        const response = await ai.chat.completions.create({
           model,
-          contents: prompt,
+          messages: [
+            { role: "system", content: "You are a helpful assistant." },
+            { role: "user", content: prompt },
+          ],
+          temperature: 1.0,
+          top_p: 1.0,
+          max_tokens: 1000,
         });
-        const text = response.text?.trim();
+        const text = response.choices[0]?.message?.content?.trim();
         if (text) return text;
       } catch (err) {
         lastErr = err;
