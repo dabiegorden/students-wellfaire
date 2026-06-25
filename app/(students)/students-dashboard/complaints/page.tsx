@@ -169,7 +169,9 @@ const ComplaintsPage = () => {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-foreground">My Complaints</h1>
+            <h1 className="text-4xl font-bold text-foreground">
+              My Complaints
+            </h1>
             <p className="text-muted-foreground mt-2">
               Track and manage your submitted complaints
             </p>
@@ -213,7 +215,7 @@ const ComplaintsPage = () => {
               You haven't submitted any complaints
             </p>
             <Link
-              href="/dashboard/student/complaints/new"
+              href="/students-dashboard/complaints/new"
               className="inline-block bg-cug-green hover:bg-cug-green-dark text-white px-6 py-2 rounded-lg transition-colors"
             >
               Submit Your First Complaint
