@@ -26,25 +26,45 @@ export interface AIAnalysis {
  */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function generateText(prompt: string): Promise<string> {
+// Hard ceiling on how long we wait for the AI provider before giving up and
+// falling back. Prevents a hung request from stalling the whole workflow.
+const AI_TIMEOUT_MS = 25_000;
+
+export interface GenerateResult {
+  text: string;
+  model: string;
+}
+
+/**
+ * Generate text with the primary model, transparently falling back to
+ * alternative models if the primary errors (e.g. 503 high demand), and
+ * reports which model actually produced the text.
+ */
+export async function generateTextWithModel(
+  prompt: string,
+  system = "You are a helpful assistant.",
+): Promise<GenerateResult> {
   const models = [AI_MODEL, ...FALLBACK_MODELS];
   let lastErr: unknown;
   for (const model of models) {
     // Retry transient overloads (503) / rate limits (429) with backoff.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await ai.chat.completions.create({
-          model,
-          messages: [
-            { role: "system", content: "You are a helpful assistant." },
-            { role: "user", content: prompt },
-          ],
-          temperature: 1.0,
-          top_p: 1.0,
-          max_tokens: 1000,
-        });
+        const response = await ai.chat.completions.create(
+          {
+            model,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: prompt },
+            ],
+            temperature: 1.0,
+            top_p: 1.0,
+            max_tokens: 1000,
+          },
+          { timeout: AI_TIMEOUT_MS },
+        );
         const text = response.choices[0]?.message?.content?.trim();
-        if (text) return text;
+        if (text) return { text, model };
       } catch (err) {
         lastErr = err;
         const status = (err as { status?: number })?.status;
@@ -61,6 +81,11 @@ export async function generateText(prompt: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error("All AI models failed");
+}
+
+export async function generateText(prompt: string): Promise<string> {
+  const { text } = await generateTextWithModel(prompt);
+  return text;
 }
 
 /**
@@ -136,6 +161,45 @@ Return ONLY the reply text, no preamble, no labels, no quotes.
 `;
 
   return generateText(prompt);
+}
+
+/**
+ * Generate the automatic acknowledgement response sent to the student
+ * immediately after a complaint is submitted. Returns both the response
+ * text and the model that produced it (for audit/storage).
+ */
+export async function generateComplaintAcknowledgement(complaint: {
+  title: string;
+  category: string;
+  description: string;
+}): Promise<GenerateResult> {
+  const system =
+    "You are a professional, empathetic student affairs officer at a university. " +
+    "You write brief acknowledgement messages confirming receipt of student complaints.";
+
+  const prompt = `
+A student has just submitted the following complaint to the Students Welfare Office.
+
+Complaint Title: "${complaint.title}"
+Category: "${complaint.category}"
+Description: "${complaint.description}"
+
+Write a short acknowledgement message to the student that:
+- Acknowledges their complaint warmly and professionally
+- Confirms that the issue has been received and logged
+- Provides genuinely useful, general guidance where appropriate
+- Encourages the student to wait for the administrator's review
+
+Strict rules:
+- NEVER invent or cite specific university policies, names, offices, deadlines, or figures
+- NEVER promise any action, outcome, or timeline that has not actually happened
+- Do NOT claim the issue is resolved
+- Keep it concise (3-5 sentences), warm, and professional
+
+Return ONLY the message text — no preamble, no labels, no quotes, no signature block.
+`;
+
+  return generateTextWithModel(prompt, system);
 }
 
 /**

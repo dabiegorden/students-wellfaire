@@ -76,11 +76,25 @@ export const complaints = pgTable("complaints", {
   repliedAt: timestamp("replied_at"),
   repliedBy: text("replied_by"), // "admin" | "ai"
 
-  // AI analysis
+  // AI analysis (triage)
   aiPriority: text("ai_priority"),
   aiExplanation: text("ai_explanation"),
   aiScore: integer("ai_score"),
   aiAnalysedAt: timestamp("ai_analysed_at"),
+
+  // AI automatic acknowledgement response (sent to the student on submission)
+  aiResponse: text("ai_response"),
+  aiGeneratedAt: timestamp("ai_generated_at"),
+  aiModel: text("ai_model"),
+
+  // Acknowledgement email delivery tracking
+  emailSent: boolean("email_sent").notNull().default(false),
+  emailSentAt: timestamp("email_sent_at"),
+  emailStatus: text("email_status"), // "sent" | "failed" | null
+
+  // Async acknowledgement workflow state (prevents duplicates / races)
+  processingStatus: text("processing_status"), // "pending" | "processing" | "completed" | "failed"
+  processingError: text("processing_error"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

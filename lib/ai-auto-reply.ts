@@ -1,18 +1,18 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/src/db";
 import { complaints } from "@/src/schema";
-import { isAdminOnline } from "@/lib/socket-server";
 import { sendComplaintReplyNotificationToStudent } from "@/lib/resend";
 import { generateComplaintReply } from "@/lib/ai";
 
-// How long to wait for an admin to respond before the AI assistant
+// How long to wait after a complaint is submitted before the AI assistant
 // automatically replies to the student.
-const AUTO_REPLY_DELAY_MS = 2 * 60 * 1000; // 2 minutes
+const AUTO_REPLY_DELAY_MS = 5 * 1000; // 5 seconds
 
 /**
- * Schedules an automated AI reply for a newly submitted complaint if no
- * admin is online. If an admin (or the AI) replies before the timer fires,
- * the auto-reply is skipped.
+ * Schedules an automated AI reply for a newly submitted complaint. The reply
+ * always fires after the delay, regardless of whether an admin is online. If
+ * an admin (or the AI) has already replied before the timer fires, the
+ * auto-reply is skipped to avoid overwriting an existing reply.
  */
 export function scheduleAIAutoReply(complaintId: string) {
   setTimeout(async () => {
@@ -25,7 +25,6 @@ export function scheduleAIAutoReply(complaintId: string) {
 
       if (!complaint) return;
       if (complaint.adminReply || complaint.repliedAt) return;
-      if (isAdminOnline()) return;
 
       const reply = await generateComplaintReply({
         title: complaint.title,

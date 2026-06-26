@@ -106,6 +106,81 @@ export async function sendNewComplaintNotificationToAdmins(
 }
 
 /**
+ * Send the automatic acknowledgement email to the student immediately after
+ * a complaint is submitted. `aiResponse` is the AI-generated body; when null
+ * (AI failed) a safe fallback message is used instead. Returns the delivery
+ * status so the caller can persist it.
+ *
+ * Idempotent: a stable idempotencyKey keyed on the complaint prevents Resend
+ * from delivering the same acknowledgement twice.
+ */
+export async function sendComplaintAcknowledgementToStudent(complaint: {
+  _id: string;
+  title: string;
+  studentName: string;
+  studentEmail: string;
+}, aiResponse: string | null): Promise<"sent" | "failed"> {
+  if (!complaint.studentEmail) {
+    console.error(
+      `[email] No student email for complaint ${complaint._id}; skipping.`,
+    );
+    return "failed";
+  }
+
+  const referenceId = complaint._id;
+  const usedFallback = !aiResponse;
+  const responseHtml = aiResponse
+    ? `<p style="white-space: pre-wrap;">${escapeHtml(aiResponse)}</p>`
+    : `<p>Your complaint has been received successfully.</p>
+       <p>Our administrative team has been notified and will review your complaint as soon as possible.</p>`;
+
+  const bodyHtml = `
+    <p>Hi ${escapeHtml(complaint.studentName || "there")},</p>
+    <p>Thank you for reaching out to the Students Welfare Office. This is an automated confirmation that your complaint has been received.</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+      <tr><td style="padding: 6px 0; font-weight: bold; width: 130px;">Reference ID:</td><td style="font-family: monospace;">${escapeHtml(referenceId)}</td></tr>
+      <tr><td style="padding: 6px 0; font-weight: bold;">Complaint:</td><td>${escapeHtml(complaint.title)}</td></tr>
+    </table>
+    <div style="background: #f3f4f6; padding: 14px 16px; border-radius: 8px; border-left: 3px solid #0a5c2e; margin: 16px 0;">
+      ${responseHtml}
+    </div>
+    <p>An administrator will review your complaint and follow up with you. Please keep your Reference ID for any further correspondence.</p>
+    <p style="margin-top: 24px;">Warm regards,<br/>Students Welfare Office</p>
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send(
+      {
+        from: FROM_EMAIL,
+        to: complaint.studentEmail,
+        subject: `We've received your complaint: ${complaint.title}`,
+        html: wrapTemplate("Complaint Received", bodyHtml),
+      },
+      { idempotencyKey: `complaint-ack/${referenceId}` },
+    );
+
+    if (error) {
+      console.error(
+        `[email] Resend rejected acknowledgement for ${referenceId}:`,
+        error,
+      );
+      return "failed";
+    }
+
+    console.log(
+      `[email] Acknowledgement sent for ${referenceId} (id=${data?.id}, fallback=${usedFallback}).`,
+    );
+    return "sent";
+  } catch (err) {
+    console.error(
+      `[email] Error sending acknowledgement for ${referenceId}:`,
+      err,
+    );
+    return "failed";
+  }
+}
+
+/**
  * Notify the student via email when their complaint receives a reply
  * (either from an admin or the AI assistant).
  */

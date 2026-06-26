@@ -3,10 +3,9 @@ import { and, eq, or, ilike, desc, sql } from "drizzle-orm";
 import { db } from "@/src/db";
 import { complaints, users } from "@/src/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminOnline } from "@/lib/socket-server";
 import { sendNewComplaintNotificationToAdmins } from "@/lib/resend";
 import { scheduleAIAutoReply } from "@/lib/ai-auto-reply";
-import { analyseComplaintWithAI } from "@/lib/ai";
+import { processComplaintAcknowledgement } from "@/lib/complaint-acknowledgement";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,13 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let aiData = null;
-    try {
-      aiData = await analyseComplaintWithAI(title, category, description);
-    } catch (aiError) {
-      console.error("AI analysis failed, using default priority:", aiError);
-    }
-
+    console.log("Creating complaint...");
     const [newComplaint] = await db
       .insert(complaints)
       .values({
@@ -42,16 +35,19 @@ export async function POST(request: NextRequest) {
         title,
         category,
         description,
-        priority: aiData?.aiPriority ?? "Medium",
+        priority: "Medium",
         status: "Pending",
-        ...(aiData && {
-          aiPriority: aiData.aiPriority,
-          aiExplanation: aiData.aiExplanation,
-          aiScore: aiData.aiScore,
-          aiAnalysedAt: new Date(),
-        }),
+        processingStatus: "pending",
       })
       .returning();
+    console.log(`Complaint saved (${newComplaint.id}).`);
+
+    // Fire-and-forget the AI triage + acknowledgement + email workflow.
+    // The HTTP response is NOT blocked on AI/email; the long-running custom
+    // Node server (server.ts) keeps the process alive to complete it.
+    void processComplaintAcknowledgement(newComplaint.id).catch((err) =>
+      console.error("Acknowledgement workflow crashed:", err),
+    );
 
     // Notify admins by email
     const admins = await db
@@ -74,9 +70,7 @@ export async function POST(request: NextRequest) {
       adminEmails,
     ).catch((err) => console.error("Admin notification email failed:", err));
 
-    if (!isAdminOnline()) {
-      scheduleAIAutoReply(newComplaint.id);
-    }
+    scheduleAIAutoReply(newComplaint.id);
 
     return NextResponse.json(
       { complaint: { ...newComplaint, _id: newComplaint.id }, message: "Complaint submitted successfully" },
